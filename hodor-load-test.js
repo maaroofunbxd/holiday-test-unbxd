@@ -18,14 +18,14 @@ export const options = {
       stages: [
           { target: 20, duration: '2m' },
           { target: 25, duration: '5m' },
-          { target: 30, duration: '5m' },
-          { target: 35, duration: '2m' },
-          { target: 60, duration: '1m' },
-          { target: 100, duration: '2m' },
-          { target: 60, duration: '2m' },
-          { target: 50, duration: '3m' },
-          { target: 40, duration: '3m' },
-          { target: 30, duration: '2m' }
+          { target: 30, duration: '5m' }
+        //   { target: 35, duration: '2m' },
+        //   { target: 60, duration: '1m' },
+        //   { target: 100, duration: '2m' },
+        //   { target: 60, duration: '2m' },
+        //   { target: 50, duration: '3m' },
+        //   { target: 40, duration: '3m' },
+        //   { target: 30, duration: '2m' }
       ],
     },
   },
