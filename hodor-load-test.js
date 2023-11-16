@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { SharedArray } from 'k6/data';
 
 const requests = new SharedArray('sample requests from production', function () {
-  return JSON.parse(open('./data/hodor_request_json.json'));
+  return JSON.parse(open('./data/hodor_request_json_2.json'));
 });
 
 
@@ -18,7 +18,7 @@ export const options = {
       stages: [
           { target: 20, duration: '2m' },
           { target: 25, duration: '5m' },
-          { target: 30, duration: '5m' }
+          { target: 30, duration: '5m' },
         //   { target: 35, duration: '2m' },
         //   { target: 60, duration: '1m' },
         //   { target: 100, duration: '2m' },
