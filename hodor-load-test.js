@@ -7,7 +7,7 @@ const requests = new SharedArray('sample requests from production', function () 
 
 
 export const options = {
-  discardResponseBodies: true,
+  discardResponseBodies: false,
   scenarios: {
     contacts: {
       executor: 'ramping-arrival-rate',

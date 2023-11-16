@@ -13,7 +13,7 @@ df = pd.concat([df1, df2, df3], ignore_index=True)
 
 extracted_column = df['log']
 
-extracted_column.to_csv(text_file_path, index=False, header=False)
+# extracted_column.to_csv(text_file_path, index=False, header=False)
 
 output_entries = []
 output_entries.append("[")
@@ -23,10 +23,10 @@ for entry in df['log']:
         match = re.search(r'query received\s+(.*)', entry)
         if match:
             query_data = json.loads(match.group(1))
-            query_data['query']['count'] = 9998
+            query_data['query']['count'] = 9997
             try:
                 #print(query_data['query']['filters']['componentFilters_1']['component_filters'][0]['group'])
-                query_data['query']['filters']['componentFilters_1']['component_filters'][0]['group'] = 2
+                #query_data['query']['filters']['componentFilters_1']['component_filters'][0]['group'] = 2
                 del query_data['query']["filters"]["componentFilters_2"]
             except Exception as e:
                 pass
