@@ -23,13 +23,13 @@ for entry in df['log']:
         match = re.search(r'query received\s+(.*)', entry)
         if match:
             query_data = json.loads(match.group(1))
-            query_data['query']['count'] = 9997
-            try:
-                #print(query_data['query']['filters']['componentFilters_1']['component_filters'][0]['group'])
-                #query_data['query']['filters']['componentFilters_1']['component_filters'][0]['group'] = 2
-                del query_data['query']["filters"]["componentFilters_2"]
-            except Exception as e:
-                pass
+            #query_data['query']['count'] = 9997
+            # try:
+            #     #print(query_data['query']['filters']['componentFilters_1']['component_filters'][0]['group'])
+            #     #query_data['query']['filters']['componentFilters_1']['component_filters'][0]['group'] = 2
+            #     del query_data['query']["filters"]["componentFilters_2"]
+            # except Exception as e:
+            #     pass
             stdata = json.dumps(query_data)
             output_entries.append(stdata+",")
 
