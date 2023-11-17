@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { SharedArray } from 'k6/data';
 
 const requests = new SharedArray('sample requests from production', function () {
-  return JSON.parse(open('./data/hodor_request_json_2.json'));
+  return JSON.parse(open('./data/hodor_request_gcp_json_2.json'));
 });
 
 
@@ -36,8 +36,9 @@ export default function () {
 
   const request = requests[requestNo];
 
-  const url = `http://internal-abdf0d577ca5d487cb684e1b7ce2f60b-168170469.us-east-1.elb.amazonaws.com/sites/${request.sitekey}/products/_filter?query_tag=${request.query_tag || "recommender"}`;
-
+  //const url = `http://internal-abdf0d577ca5d487cb684e1b7ce2f60b-168170469.us-east-1.elb.amazonaws.com/sites/${request.sitekey}/products/_filter?query_tag=${request.query_tag || "recommender"}`;
+  const url = `hodor.pilot-rc-unbxd.infra/sites/${request.sitekey}/products/_filter?query_tag=${request.query_tag || "recommender"}`;
+  
   const payload = JSON.stringify(request.query);
 
   const params = {
