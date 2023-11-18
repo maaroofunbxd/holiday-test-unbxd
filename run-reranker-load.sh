@@ -1,0 +1,2 @@
+#!bin/bash
+docker run --rm -v `pwd`:/data -i grafana/k6 run - < reranker-load-test-recs.js

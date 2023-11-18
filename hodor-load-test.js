@@ -44,7 +44,6 @@ export default function () {
   const params = {
     headers: {
       'Content-Type': 'application/json',
-      'Host': 'hodor-sharded.dev-gcp.infra',
     },
   };
 
