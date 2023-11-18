@@ -14,15 +14,15 @@ export const options = {
       startRate: 15,
       timeUnit: '1s',
       preAllocatedVUs: 10,
-      maxVUs: 20,
+      //maxVUs: 20,
       stages: [
-          { target: 40, duration: '1m' },
-          { target: 75, duration: '2m' },
-          { target: 80, duration: '3m' },
-          { target: 100, duration: '2m' },
-          { target: 80, duration: '2m' },
-          { target: 75, duration: '3m' },
+          { target: 20, duration: '1m' },
           { target: 40, duration: '3m' },
+          { target: 40, duration: '2m' },
+        //   { target: 100, duration: '2m' },
+        //   { target: 80, duration: '2m' },
+        //   { target: 75, duration: '3m' },
+        //   { target: 40, duration: '3m' },
       ],
     },
   },
@@ -34,7 +34,7 @@ export default function () {
 
   const request = requests[requestNo];
 
-  const url = `http://internal-a30fe95f872334a299276a9530109ac0-1836140854.us-east-1.elb.amazonaws.com/v2.0/sites/${request.sitekey}/recommend`;
+  const url = `http://internal-a28503a22239d48d3b5a8bd01dc06611-1712404486.us-east-1.elb.amazonaws.com/v2.0/sites/${request.sitekey}/recommend`;
   
   const payload = JSON.stringify(request.query);
 
