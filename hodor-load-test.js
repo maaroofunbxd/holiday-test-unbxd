@@ -37,7 +37,12 @@ export default function () {
   const request = requests[requestNo];
 
   //const url = `http://internal-abdf0d577ca5d487cb684e1b7ce2f60b-168170469.us-east-1.elb.amazonaws.com/sites/${request.sitekey}/products/_filter?query_tag=${request.query_tag || "recommender"}`;
-  const url = `http://hodor.pilot-rc-unbxd.infra/sites/${request.sitekey}/products/_filter?query_tag=${request.query_tag || "recommender"}`;
+  var url
+  if(request.query_tag == "recommender"){
+    url = `http://34.86.235.188/sites/test-unbxd_213213/products/_detail`;
+  }else{
+    url = `http://34.86.235.188/v2/sites/test-unbxd_213213/products/_filter`;
+  }
   
   const payload = JSON.stringify(request.query);
 
