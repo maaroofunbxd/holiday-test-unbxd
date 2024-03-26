@@ -2,6 +2,7 @@ import pandas as pd
 import json
 import re
 import random
+from random import randrange
 
 
 # csv_file_path = 'log_hodor_gcp_1.csv'
@@ -79,8 +80,15 @@ print(data[0]["query_tag"])
 new_req = []
 for x in data:
     if x["query_tag"] == "recommender":
+        pro = []
+        l = len(x["query"]["products"])
+        for i in range(100):
+            rr = randrange(l)
+            pro.append(x["query"]["products"][rr])
+        x["query"]["products"] = pro
         new_req.append(x)
 
 
-with open('hodor_request_gcp_json_recommender.json', 'w') as file:
+
+with open('hodor_request_gcp_json_recommender_2.json', 'w') as file:
     json.dump(new_req, file, indent=4)
