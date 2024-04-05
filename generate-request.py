@@ -41,5 +41,5 @@ def generate_json():
 json_data = [generate_json() for _ in range(2000)]
 
 
-with open("store_reuest.json", "w") as file:
+with open("store_request.json", "w") as file:
     json.dump(json_data, file)
