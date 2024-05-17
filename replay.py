@@ -13,11 +13,17 @@ def send_request(api_url, request_data):
     headers = {'Content-Type': 'application/json'}
     response = requests.post(api_url, json=request_data, headers=headers)
     res = response.json()
-    return res
+    if response.status_code == 200:
+        return res
+    return "Status not ok"
     
 
 def compare_responses(response1, response2):
-    if response1 == response2:
+    response1_products_sorted = sorted(response1.get("response", {}).get("products", []), key=lambda x: x["uniqueId"])
+    response2_products_sorted = sorted(response2.get("response", {}).get("products", []), key=lambda x: x["uniqueId"])
+    print("res sor",response1_products_sorted)
+    print("res sor 2",response2_products_sorted)
+    if response1_products_sorted == response2_products_sorted:
         return True
     else:
         return False
@@ -25,10 +31,8 @@ def compare_responses(response1, response2):
 for request in request_data[:1]:
     resp_v2 = send_request(new_hodor_api, request["query"])
     resp_old = send_request(old_hodor_api, request["query"])
-    print("resp_v2",resp_v2)
-    print("resp_old", resp_old)
     if compare_responses(resp_v2, resp_old):
-        print("Eqaul")
+        print("Equal")
     else:
         print("NotEqual")
 
