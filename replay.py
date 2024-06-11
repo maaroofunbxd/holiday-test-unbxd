@@ -31,11 +31,12 @@ def compare_responses(response1, response2):
         return False
 
 for request in request_data[:1]:
-    if request["query_tag"] != "reranker":
-        continue
-    request["query"]["count"]= 50000
+    # if request["query_tag"] != "reranker":
+    #     continue
+    #request["query"]["count"]= 50000
     resp_v2 = send_request(new_hodor_api, request["query"])
-    print(resp_v2)
+    if resp_v2 == "NOTOK":
+        print(resp_v2)
     #resp_old = send_request(old_hodor_api, request["query"])
     
     # if compare_responses(resp_v2, resp_old):
