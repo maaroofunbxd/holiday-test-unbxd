@@ -3,10 +3,10 @@ import requests
 
 
 
-with open("mwave_hodor.json", "r") as file:
+with open("pepper_hodor.json", "r") as file:
     request_data = json.load(file)
 
-new_hodor_api = "http://internal-ab9ffcb3f856f40a79c9c85d0fcf4098-37368537.ap-southeast-2.elb.amazonaws.com/sites/ss-unbxd-prod-mwave43601693203163/products/_filter"
+new_hodor_api = "internal-ad9b889cbc3b2436192af5a56a90b239-1356142677.ap-southeast-1.elb.amazonaws.com/sites/ss-unbxd-prod-mwave43601693203163/products/_filter"
 old_hodor_api = "http://hodor.prod.ap-southeast-2.infra/sites/prod-stratco4681588782802/products/_filter"
 
 def send_request(api_url, request_data):

@@ -5,7 +5,7 @@ import random
 from random import randrange
 
 
-csv_file_path = 'stratco.csv'
+csv_file_path = 'mirraw.csv'
 # csv_file_path_2 = 'log_hodor_gcp_2.csv'
 # csv_file_path_3 = 'log_hodor_gcp_3.csv'
 # csv_file_path_4 = 'log_hodor_gcp_4.csv'
@@ -49,7 +49,7 @@ for entry in df['log']:
 output_entries[-1] = output_entries[-1][:-1]
 output_entries.append("]")
 
-with open('stratco_hodor.json', 'w') as file:
+with open('mirraw_hodor.json', 'w') as file:
     file.write('\n'.join(output_entries))
 
 
