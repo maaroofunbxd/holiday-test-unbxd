@@ -3,11 +3,11 @@ import requests
 
 
 
-with open("pepper_hodor.json", "r") as file:
+with open("uk_alohas_hodor.json", "r") as file:
     request_data = json.load(file)
 
-new_hodor_api = "internal-ad9b889cbc3b2436192af5a56a90b239-1356142677.ap-southeast-1.elb.amazonaws.com/sites/ss-unbxd-prod-mwave43601693203163/products/_filter"
-old_hodor_api = "http://hodor.prod.ap-southeast-2.infra/sites/prod-stratco4681588782802/products/_filter"
+new_hodor_api = "internal-aa7b09ed31aae4cd1b394dcf0e57d966-171552016.eu-west-2.elb.amazonaws.com/sites/ss-unbxd-prod-alohassandles-shopifyplus43721687326386/products/_filter"
+old_hodor_api = "http://hodor.prod.eu-west-2.infra/sites/ss-unbxd-prod-alohassandles-shopifyplus43721687326386/products/_filter"
 
 def send_request(api_url, request_data):
     headers = {'Content-Type': 'application/json'}
@@ -37,6 +37,7 @@ for request in request_data[:1]:
     resp_v2 = send_request(new_hodor_api, request["query"])
     if resp_v2 == "NOTOK":
         print(resp_v2)
+        print(request["query"])
     #resp_old = send_request(old_hodor_api, request["query"])
     
     # if compare_responses(resp_v2, resp_old):
