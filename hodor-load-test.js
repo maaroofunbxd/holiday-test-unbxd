@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { SharedArray } from 'k6/data';
 
 const requests = new SharedArray('sample requests from production', function () {
-  return JSON.parse(open('./data/us_angara_search_hodor_2.json'));
+  return JSON.parse(open('/data/us_angara_search_hodor_2.json'));
 });
 
 

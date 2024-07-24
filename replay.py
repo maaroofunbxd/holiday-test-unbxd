@@ -13,6 +13,8 @@ def send_request(api_url, request_data):
     headers = {'Content-Type': 'application/json'}
     response = requests.post(api_url, json=request_data, headers=headers)
     res = response.json()
+    if len(res["response"]["products"]) == 0:
+        print("Empty res")
     if response.status_code == 200:
         return "OK"
     return "NOTOK"
