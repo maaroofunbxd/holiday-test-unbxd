@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { SharedArray } from 'k6/data';
 
 const requests = new SharedArray('sample requests from production', function () {
-  return JSON.parse(open('./data/store_request.json'));
+  return JSON.parse(open('./data/us_angara_search_hodor_2.json'));
 });
 
 
@@ -36,13 +36,13 @@ export default function () {
 
   const request = requests[requestNo];
 
-  //const url = `http://internal-abdf0d577ca5d487cb684e1b7ce2f60b-168170469.us-east-1.elb.amazonaws.com/sites/${request.sitekey}/products/_filter?query_tag=${request.query_tag || "recommender"}`;
-  var url
-  if(request.query_tag == "recommender"){
-    url = `http://34.86.235.188/sites/test_store_site/products/_detail`;
-  }else{
-    url = `http://34.86.235.188/v2/sites/test_store_site/products/_filter`;
-  }
+  const url = `http://internal-a7cd4c58d2f14497a95ab85e73fee6c5-227169144.us-east-1.elb.amazonaws.com/sites/${request.sitekey}/products/_filter?query_tag=${request.query_tag || "recommender"}`;
+  // var url
+  // if(request.query_tag == "recommender"){
+  //   url = `http://34.86.235.188/sites/test_store_site/products/_detail`;
+  // }else{
+  //   url = `http://34.86.235.188/v2/sites/test_store_site/products/_filter`;
+  // }
   
   const payload = JSON.stringify(request.query);
 
