@@ -16,15 +16,15 @@ export const options = {
       preAllocatedVUs: 10,
       maxVUs: 20,
       stages: [
-          { target: 40, duration: '1m' },
-          { target: 75, duration: '2m' },
-          { target: 100, duration: '3m' },
-          { target: 120, duration: '3m' },
-          { target: 150, duration: '3m' },
+          { target: 70, duration: '1m' },
           { target: 100, duration: '2m' },
-          { target: 75, duration: '3m' },
-          { target: 40, duration: '3m' },
-          { target: 30, duration: '2m' }
+          { target: 150, duration: '2m' },
+          { target: 150, duration: '2m' },
+          { target: 250, duration: '3m' },
+          { target: 250, duration: '1m' },
+          { target: 200, duration: '2m' },
+          { target: 100, duration: '2m' },
+          { target: 70, duration: '1m' }
       ],
     },
   },
