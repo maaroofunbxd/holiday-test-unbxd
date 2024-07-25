@@ -1,10 +1,8 @@
 import json
 import requests
 
-products = []
-
-with open('express_products4.json') as file:
-    json.dump(products,file)
+f = open('express_products4.json')
+products = json.load(f)
 
 
 productsUrl = "http://internal-a7cd4c58d2f14497a95ab85e73fee6c5-227169144.us-east-1.elb.amazonaws.com/sites/test-unbxd_213213/products/_insertbatch?isfilter=false"
