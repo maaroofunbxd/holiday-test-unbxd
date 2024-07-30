@@ -16,9 +16,9 @@ export const options = {
       preAllocatedVUs: 10,
       maxVUs: 10,
       stages: [
-          { target: 10, duration: '1m' },
-          { target: 20, duration: '2m' },
+          { target: 20, duration: '1m' },
           { target: 30, duration: '2m' },
+          { target: 40, duration: '2m' },
           { target: 20, duration: '2m' },
       ],
     },
@@ -34,12 +34,13 @@ function shuffle(array) {
 
 
 export default function () {
-    const numProducts = 1000;
+    const requestNo = Math.floor(Math.random() * products.length);
+    const request = products[requestNo];
     const productsUrl = 'http://internal-a7cd4c58d2f14497a95ab85e73fee6c5-227169144.us-east-1.elb.amazonaws.com/sites/test-unbxd_213213/products/_insertbatch?isfilter=false';
-    let mutableProducts = Array.from(products);
-    shuffle(mutableProducts);
-    const selectedProducts = products.slice(0, numProducts);
-    http.post(productsUrl, JSON.stringify(selectedProducts), {
+    // let mutableProducts = Array.from(products);
+    // shuffle(mutableProducts);
+    // const selectedProducts = products.slice(0, numProducts);
+    http.post(productsUrl, JSON.stringify(request), {
         headers: { 'Content-Type': 'application/json' },
     });
 }
