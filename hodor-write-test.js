@@ -38,13 +38,12 @@ function shuffle(array) {
 
 
 export default function () {
-    // const requestNo = Math.floor(Math.random() * products.length);
-    // const request = products[requestNo];
-    const numProducts = 500
+    const numProducts = 100
+    const requestNo = Math.floor(Math.random() * (products.length - numProducts));
     const productsUrl = 'http://internal-a7cd4c58d2f14497a95ab85e73fee6c5-227169144.us-east-1.elb.amazonaws.com/sites/test-unbxd_213213/products/_insertbatch?isfilter=false';
-    let mutableProducts = Array.from(products);
-    shuffle(mutableProducts);
-    const selectedProducts = products.slice(0, numProducts);
+    //let mutableProducts = Array.from(products);
+    //shuffle(mutableProducts);
+    const selectedProducts = products.slice(requestNo, requestNo+numProducts);
     http.post(productsUrl, JSON.stringify(selectedProducts), {
         headers: { 'Content-Type': 'application/json' },
     });
