@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k6-test-pod
+spec:
+  containers:
+  - name: k6-container
+    image: grafana/k6
+    command: ["sleep", "infinity"]
+    volumeMounts:
+    - name: data-volume
+      mountPath: /data
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "300m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  volumes:
+  - name: data-volume
+    emptyDir: {}
