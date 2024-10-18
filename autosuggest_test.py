@@ -3,7 +3,7 @@ import requests
 import json
 
 
-csv_file_path = 'camperAsWingman.csv'
+csv_file_path = 'ukAs.csv'
 df = pd.read_csv(csv_file_path)
 
 req  = 10
