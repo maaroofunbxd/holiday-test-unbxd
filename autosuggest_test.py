@@ -2,6 +2,10 @@ import pandas as pd
 import requests
 import json
 
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+
+
+# Example usage
 
 csv_file_path = 'gcpASCF.csv'
 df = pd.read_csv(csv_file_path)
@@ -14,12 +18,25 @@ req  = 10
 # prod_array =  jres.get('response').get('products')
 # print(prod_array[0].get('autosuggest'))
 
+def remove_query_param_from_path(path, param_to_remove):
+    parsed_url = urlparse(path)
+    query_params = parse_qs(parsed_url.query)
+    if param_to_remove in query_params:
+        del query_params[param_to_remove]
+    new_query = urlencode(query_params, doseq=True)
+    updated_path = urlunparse(parsed_url._replace(query=new_query))
+    
+    return updated_path
+
+
 for i in range(0,req):
-    if "/search" in df['ClientRequestURI'][i]:
+    updated_path = remove_query_param_from_path(df['ClientRequestURI'][i], "json.wrf")
+    print(updated_path)
+    if "/search" in updated_path:
         continue
-    url = "https://search.unbxd.io" + df['ClientRequestURI'][i]
+    url = "https://search.unbxd.io" + updated_path
     try:
-        demo_url = "http://10.110.3.25"+ df['ClientRequestURI'][i]
+        demo_url = "http://10.110.3.25"+ updated_path
         res = requests.get(url)
         demo_res = requests.get(demo_url)
         jres = json.loads(res.content)
