@@ -15,6 +15,8 @@ req  = 10
 # print(prod_array[0].get('autosuggest'))
 
 for i in range(0,req):
+    if "/search" in df['ClientRequestURI'][i]:
+        continue
     url = "https://search.unbxd.io" + df['ClientRequestURI'][i]
     try:
         demo_url = "http://10.110.3.25"+ df['ClientRequestURI'][i]
