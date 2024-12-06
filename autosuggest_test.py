@@ -7,7 +7,7 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 # Example usage
 
-csv_file_path = 'gcpASCF.csv'
+csv_file_path = 'APACAsCF.csv'
 df = pd.read_csv(csv_file_path)
 
 req  = 10
@@ -31,12 +31,11 @@ def remove_query_param_from_path(path, param_to_remove):
 
 for i in range(0,req):
     updated_path = remove_query_param_from_path(df['ClientRequestURI'][i], "json.wrf")
-    print(updated_path)
     if "/search" in updated_path:
         continue
     url = "https://search.unbxd.io" + updated_path
     try:
-        demo_url = "http://10.110.3.25"+ updated_path
+        demo_url = "http://internal-afb22f271b11a11ee8e2006993762d51-1541683563.ap-southeast-1.elb.amazonaws.com"+ updated_path
         res = requests.get(url)
         demo_res = requests.get(demo_url)
         jres = json.loads(res.content)
