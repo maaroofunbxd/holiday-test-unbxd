@@ -7,7 +7,7 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 # Example usage
 
-csv_file_path = 'APACAsCF.csv'
+csv_file_path = 'anzASCf.csv'
 df = pd.read_csv(csv_file_path)
 
 req  = 10
@@ -35,7 +35,7 @@ for i in range(0,req):
         continue
     url = "https://search.unbxd.io" + updated_path
     try:
-        demo_url = "http://internal-afb22f271b11a11ee8e2006993762d51-1541683563.ap-southeast-1.elb.amazonaws.com"+ updated_path
+        demo_url = "http://internal-a422aeac695b311ee99100270ddeb147-574464598.ap-southeast-2.elb.amazonaws.com"+ updated_path
         res = requests.get(url)
         demo_res = requests.get(demo_url)
         jres = json.loads(res.content)
@@ -46,7 +46,7 @@ for i in range(0,req):
         prod_array =  jres.get('response').get('products')
         pro_array_demo = jres_demo.get('response').get('products')
         if num_pro != num_pro_demo :
-            print("num pro different for", url)
+            print(f"num pro different for {url} prod {num_pro_demo}")
         if len(prod_array) != len(pro_array_demo):
             print("len prod array is different for url", url)
             continue
