@@ -7,7 +7,7 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 # Example usage
 
-csv_file_path = 'anzASCf.csv'
+csv_file_path = 'UkASCf.csv'
 df = pd.read_csv(csv_file_path)
 
 req  = 10
@@ -35,7 +35,7 @@ for i in range(0,req):
         continue
     url = "https://search.unbxd.io" + updated_path
     try:
-        demo_url = "http://internal-a422aeac695b311ee99100270ddeb147-574464598.ap-southeast-2.elb.amazonaws.com"+ updated_path
+        demo_url = "http://internal-a0484b72775f611ed98b10284fd5d35d-2106550818.eu-west-2.elb.amazonaws.com"+ updated_path
         res = requests.get(url)
         demo_res = requests.get(demo_url)
         jres = json.loads(res.content)
