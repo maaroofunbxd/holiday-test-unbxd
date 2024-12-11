@@ -7,7 +7,7 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 # Example usage
 
-csv_file_path = 'UkASCf.csv'
+csv_file_path = 'USASCf.csv'
 df = pd.read_csv(csv_file_path)
 
 req  = 10
@@ -17,7 +17,7 @@ req  = 10
 # jres = json.loads(res.content)
 # prod_array =  jres.get('response').get('products')
 # print(prod_array[0].get('autosuggest'))
-
+print("req len", len(df))
 def remove_query_param_from_path(path, param_to_remove):
     parsed_url = urlparse(path)
     query_params = parse_qs(parsed_url.query)
@@ -35,7 +35,7 @@ for i in range(0,req):
         continue
     url = "https://search.unbxd.io" + updated_path
     try:
-        demo_url = "http://internal-a0484b72775f611ed98b10284fd5d35d-2106550818.eu-west-2.elb.amazonaws.com"+ updated_path
+        demo_url = "http://internal-afa6080940c1511ec98e01270c578fda-1058665878.us-east-1.elb.amazonaws.com"+ updated_path
         res = requests.get(url)
         demo_res = requests.get(demo_url)
         jres = json.loads(res.content)
