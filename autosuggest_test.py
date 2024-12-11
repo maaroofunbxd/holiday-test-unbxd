@@ -7,10 +7,10 @@ from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 # Example usage
 
-csv_file_path = 'USASCf.csv'
+csv_file_path = 'hsnASCf.csv'
 df = pd.read_csv(csv_file_path)
 
-req  = 10
+req  = len(df)
 # url = "https://search.unbxd.io" + df['ClientRequestURI'][0]
 # print(url)
 # res = requests.get(url)
@@ -45,8 +45,8 @@ for i in range(0,req):
         #print(f"num_pro {num_pro} num_pro_demo {num_pro_demo}")
         prod_array =  jres.get('response').get('products')
         pro_array_demo = jres_demo.get('response').get('products')
-        if num_pro != num_pro_demo :
-            print(f"num pro different for {url} prod {num_pro_demo}")
+        # if num_pro != num_pro_demo :
+        #     print(f"num pro different for {url} prod {num_pro_demo}")
         if len(prod_array) != len(pro_array_demo):
             print("len prod array is different for url", url)
             continue
