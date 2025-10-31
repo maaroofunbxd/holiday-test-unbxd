@@ -2,6 +2,7 @@
 """
 Monitor Kubernetes pod resources showing current/limit as fractions
 Usage: python3 monitor-pod-resources.py [--watch INTERVAL]
+No external dependencies required - uses only stdlib
 """
 
 import subprocess
@@ -105,7 +106,7 @@ def get_pod_metrics(limits_map, label_selector):
         
         # Calculate percentages
         cpu_percent = f"{(cpu_current_val/cpu_limit_val)*100:.1f}%" if cpu_limit_val and cpu_current_val else "N/A"
-        mem_percent = f"{(mem_current_val/mem_limit_val)*100:.1f}%" if mem_limit_val and mem_current_val else "N/A"
+        mem_percent = f"{(mem_current_val/mem_limit_val)*100:.1f}%" if mem_limit_val and mem_current_val else "N/A"        
         
         metrics.append({
             'pod': pod_name,
@@ -113,18 +114,47 @@ def get_pod_metrics(limits_map, label_selector):
             'cpu_percent': cpu_percent,
             'memory': mem_fraction_gb,
             'mem_percent': mem_percent,
+
         })
     
     return metrics
 
 
+def get_color(percent):
+    """Get ANSI color code based on percentage"""
+    if percent >= 90:
+        return '\033[91m'  # Bright red
+    elif percent >= 75:
+        return '\033[93m'  # Bright yellow
+    elif percent >= 50:
+        return '\033[33m'  # Yellow
+    else:
+        return '\033[92m'  # Bright green
+
+
 def display_metrics(metrics):
-    """Display metrics in a table format"""
-    print(f"{'POD':<45} {'CPU (current/limit)':<25} {'CPU %':<10} {'MEMORY (current/limit)':<25} {'MEM %':<10}")
-    print("=" * 115)
+    """Display metrics in a table format with colors"""
+    # ANSI color codes
+    BOLD = '\033[1m'
+    CYAN = '\033[96m'
+    RESET = '\033[0m'
     
+    # Table header
+    print(f"\n{BOLD}{CYAN}{'POD':<42} {'CPU (curr/lim)':<18} {'CPU %':<10} {'MEMORY (curr/lim)':<20} {'MEM %':<10}{RESET}")
+    print(f"{CYAN}{'═' * 42} {'═' * 18} {'═' * 10} {'═' * 20} {'═' * 10}{RESET}")
+    
+    # Table rows
     for m in metrics:
-        print(f"{m['pod']:<45} {m['cpu']:<25} {m['cpu_percent']:<10} {m['memory']:<25} {m['mem_percent']:<10}")
+        cpu_color = get_color(m['cpu_pct_num'])
+        mem_color = get_color(m['mem_pct_num'])
+        
+        print(
+            f"{m['pod']:<42} "
+            f"{m['cpu']:<18} "
+            f"{cpu_color}{m['cpu_percent']:<10}{RESET} "
+            f"{m['memory']:<20} "
+            f"{mem_color}{m['mem_percent']:<10}{RESET}"
+        )
     
     print()
 
@@ -141,8 +171,8 @@ def main():
         try:
             while True:
                 print("\033[2J\033[H")  # Clear screen
-                print(f"Refreshing every {args.watch} seconds... (Ctrl+C to stop)")
-                print(f"Label: {args.label}\n")
+                print(f"\033[1m\033[96mRefreshing every {args.watch} seconds...\033[0m \033[2m(Ctrl+C to stop)\033[0m")
+                print(f"\033[1mLabel:\033[0m {args.label}")
                 
                 # Fetch limits before each iteration
                 limits_map = get_pod_limits(args.label)
@@ -151,7 +181,7 @@ def main():
                 
                 time.sleep(args.watch)
         except KeyboardInterrupt:
-            print("\nStopped monitoring.")
+            print("\n\033[2mStopped monitoring.\033[0m")
     else:
         limits_map = get_pod_limits(args.label)
         metrics = get_pod_metrics(limits_map, args.label)
