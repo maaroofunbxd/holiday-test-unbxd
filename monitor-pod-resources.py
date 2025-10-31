@@ -2,7 +2,7 @@
 """
 Monitor Kubernetes pod resources showing current/limit as fractions
 Usage: python3 monitor-pod-resources.py [--watch INTERVAL]
-Requires: pandas (pip install pandas)
+Requires: pandas, tabulate (pip install pandas tabulate)
 """
 
 import subprocess
@@ -16,6 +16,14 @@ try:
 except ImportError:
     PANDAS_AVAILABLE = False
     print("Error: pandas is required. Install with: pip install pandas", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    from tabulate import tabulate
+    TABULATE_AVAILABLE = True
+except ImportError:
+    TABULATE_AVAILABLE = False
+    print("Error: tabulate is required. Install with: pip install tabulate", file=sys.stderr)
     sys.exit(1)
 
 
@@ -145,8 +153,8 @@ def colorize_percentage(val):
         return val
 
 
-def display_metrics(metrics):
-    """Display metrics using pandas DataFrame"""
+def display_metrics(metrics, table_format='grid'):
+    """Display metrics using pandas DataFrame with tabulate"""
     if not metrics:
         print("No pods found.")
         return
@@ -157,14 +165,8 @@ def display_metrics(metrics):
     df['CPU %'] = df['CPU %'].apply(colorize_percentage)
     df['MEM %'] = df['MEM %'].apply(colorize_percentage)
     
-    # Configure pandas display options
-    pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', None)
-    
-    # Print with nice formatting
-    print(f"\n{df.to_string(index=False)}\n")
+    # Print with tabulate for beautiful tables
+    print(f"\n{tabulate(df, headers='keys', tablefmt=table_format, showindex=False)}\n")
 
 
 def main():
@@ -173,6 +175,9 @@ def main():
                         help='Watch mode with update interval (default: 5 seconds). Use --watch 0 for one-time check.')
     parser.add_argument('--label', '-l', type=str, default='algo in (personalization,ranking)',
                         help='Label selector for pods (default: "algo in (personalization,ranking)")')
+    parser.add_argument('--format', '-f', type=str, default='grid',
+                        choices=['grid', 'fancy_grid', 'psql', 'github', 'simple', 'plain', 'pretty', 'pipe'],
+                        help='Table format (default: grid). Options: grid, fancy_grid, psql, github, simple, plain, pretty, pipe')
     args = parser.parse_args()
     
     if args.watch > 0:
@@ -185,7 +190,7 @@ def main():
                 # Fetch limits before each iteration
                 limits_map = get_pod_limits(args.label)
                 metrics = get_pod_metrics(limits_map, args.label)
-                display_metrics(metrics)
+                display_metrics(metrics, args.format)
                 
                 time.sleep(args.watch)
         except KeyboardInterrupt:
@@ -193,7 +198,7 @@ def main():
     else:
         limits_map = get_pod_limits(args.label)
         metrics = get_pod_metrics(limits_map, args.label)
-        display_metrics(metrics)
+        display_metrics(metrics, args.format)
 
 
 if __name__ == "__main__":
