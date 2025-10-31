@@ -2,14 +2,21 @@
 """
 Monitor Kubernetes pod resources showing current/limit as fractions
 Usage: python3 monitor-pod-resources.py [--watch INTERVAL]
-No external dependencies required - uses only stdlib
+Requires: pandas (pip install pandas)
 """
 
 import subprocess
-import json
 import sys
 import time
 import argparse
+
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
+    print("Error: pandas is required. Install with: pip install pandas", file=sys.stderr)
+    sys.exit(1)
 
 
 def parse_resource(value):
@@ -106,61 +113,58 @@ def get_pod_metrics(limits_map, label_selector):
         
         # Calculate percentages
         cpu_percent = f"{(cpu_current_val/cpu_limit_val)*100:.1f}%" if cpu_limit_val and cpu_current_val else "N/A"
-        mem_percent = f"{(mem_current_val/mem_limit_val)*100:.1f}%" if mem_limit_val and mem_current_val else "N/A"        
+        mem_percent = f"{(mem_current_val/mem_limit_val)*100:.1f}%" if mem_limit_val and mem_current_val else "N/A"
         
         metrics.append({
-            'pod': pod_name,
-            'cpu': cpu_fraction,
-            'cpu_percent': cpu_percent,
-            'memory': mem_fraction_gb,
-            'mem_percent': mem_percent,
-
+            'POD': pod_name,
+            'CPU (current/limit)': cpu_fraction,
+            'CPU %': cpu_percent,
+            'MEMORY (current/limit)': mem_fraction_gb,
+            'MEM %': mem_percent,
         })
     
     return metrics
 
 
-def get_color(percent):
-    """Get ANSI color code based on percentage"""
-    if percent >= 90:
-        return '\033[91m'  # Bright red
-    elif percent >= 75:
-        return '\033[93m'  # Bright yellow
-    elif percent >= 50:
-        return '\033[33m'  # Yellow
-    else:
-        return '\033[92m'  # Bright green
+def colorize_percentage(val):
+    """Colorize percentage values based on threshold"""
+    if val == 'N/A':
+        return val
+    
+    try:
+        percent = float(val.rstrip('%'))
+        if percent >= 90:
+            return f'\033[91m{val}\033[0m'  # Red
+        elif percent >= 75:
+            return f'\033[93m{val}\033[0m'  # Bright yellow
+        elif percent >= 50:
+            return f'\033[33m{val}\033[0m'  # Yellow
+        else:
+            return f'\033[92m{val}\033[0m'  # Green
+    except:
+        return val
 
 
 def display_metrics(metrics):
-    """Display metrics in a table format with colors"""
-    # ANSI color codes
-    BOLD = '\033[1m'
-    CYAN = '\033[96m'
-    RESET = '\033[0m'
+    """Display metrics using pandas DataFrame"""
+    if not metrics:
+        print("No pods found.")
+        return
     
-    # Table header
-    print(f"\n{BOLD}{CYAN}{'POD':<42} {'CPU (curr/lim)':<18} {'CPU %':<10} {'MEMORY (curr/lim)':<20} {'MEM %':<10}{RESET}")
-    print(f"{CYAN}{'═' * 42} {'═' * 18} {'═' * 10} {'═' * 20} {'═' * 10}{RESET}")
+    df = pd.DataFrame(metrics)
     
-    # Table rows
-    for m in metrics:
-        # Extract numeric value from percentage string for coloring
-        cpu_pct = float(m['cpu_percent'].rstrip('%')) if m['cpu_percent'] != 'N/A' else 0
-        mem_pct = float(m['mem_percent'].rstrip('%')) if m['mem_percent'] != 'N/A' else 0
-        
-        cpu_color = get_color(cpu_pct)
-        mem_color = get_color(mem_pct)
-        
-        print(
-            f"{m['pod']:<42} "
-            f"{m['cpu']:<18} "
-            f"{cpu_color}{m['cpu_percent']:<10}{RESET} "
-            f"{m['memory']:<20} "
-            f"{mem_color}{m['mem_percent']:<10}{RESET}"
-        )
+    # Apply coloring to percentage columns
+    df['CPU %'] = df['CPU %'].apply(colorize_percentage)
+    df['MEM %'] = df['MEM %'].apply(colorize_percentage)
     
-    print()
+    # Configure pandas display options
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', None)
+    
+    # Print with nice formatting
+    print(f"\n{df.to_string(index=False)}\n")
 
 
 def main():
