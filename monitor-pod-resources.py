@@ -145,8 +145,12 @@ def display_metrics(metrics):
     
     # Table rows
     for m in metrics:
-        cpu_color = get_color(m['cpu_pct_num'])
-        mem_color = get_color(m['mem_pct_num'])
+        # Extract numeric value from percentage string for coloring
+        cpu_pct = float(m['cpu_percent'].rstrip('%')) if m['cpu_percent'] != 'N/A' else 0
+        mem_pct = float(m['mem_percent'].rstrip('%')) if m['mem_percent'] != 'N/A' else 0
+        
+        cpu_color = get_color(cpu_pct)
+        mem_color = get_color(mem_pct)
         
         print(
             f"{m['pod']:<42} "
