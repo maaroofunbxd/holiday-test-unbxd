@@ -29,6 +29,41 @@ def parse_resource(value):
     return float(value)
 
 
+# Global cache for pod resource limits
+POD_LIMITS_CACHE = {}
+
+
+def get_pod_limits(pod_name):
+    """Get pod resource limits, using cache if available"""
+    # Check cache first
+    if pod_name in POD_LIMITS_CACHE:
+        return POD_LIMITS_CACHE[pod_name]
+    
+    # Fetch from API for new pods
+    cmd = ["kubectl", "get", "pod", pod_name, "-o", "json"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        return None
+    
+    pod_data = json.loads(result.stdout)
+    container = pod_data['spec']['containers'][0]
+    resources = container.get('resources', {})
+    
+    limits = {
+        'cpu_request': resources.get('requests', {}).get('cpu', 'N/A'),
+        'cpu_limit': resources.get('limits', {}).get('cpu', 'N/A'),
+        'mem_request': resources.get('requests', {}).get('memory', 'N/A'),
+        'mem_limit': resources.get('limits', {}).get('memory', 'N/A')
+    }
+    
+    # Cache it
+    POD_LIMITS_CACHE[pod_name] = limits
+    print(f"[Cached new pod: {pod_name}]", file=sys.stderr)
+    
+    return limits
+
+
 def get_pod_metrics():
     """Get current pod metrics and their limits"""
     # Get current usage
@@ -40,6 +75,8 @@ def get_pod_metrics():
         return []
     
     metrics = []
+    current_pods = set()
+    
     for line in result.stdout.strip().split('\n'):
         if not line:
             continue
@@ -49,21 +86,17 @@ def get_pod_metrics():
         cpu_current = parts[1]
         mem_current = parts[2]
         
-        # Get pod resource limits
-        cmd = ["kubectl", "get", "pod", pod_name, "-o", "json"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        current_pods.add(pod_name)
         
-        if result.returncode != 0:
+        # Get pod resource limits (from cache or API)
+        limits = get_pod_limits(pod_name)
+        if not limits:
             continue
         
-        pod_data = json.loads(result.stdout)
-        container = pod_data['spec']['containers'][0]
-        resources = container.get('resources', {})
-        
-        cpu_request = resources.get('requests', {}).get('cpu', 'N/A')
-        cpu_limit = resources.get('limits', {}).get('cpu', 'N/A')
-        mem_request = resources.get('requests', {}).get('memory', 'N/A')
-        mem_limit = resources.get('limits', {}).get('memory', 'N/A')
+        cpu_request = limits['cpu_request']
+        cpu_limit = limits['cpu_limit']
+        mem_request = limits['mem_request']
+        mem_limit = limits['mem_limit']
         
         # Calculate fractions
         cpu_current_val = parse_resource(cpu_current)
@@ -82,6 +115,13 @@ def get_pod_metrics():
             'mem_request': mem_request
         })
     
+    # Clean up cache for pods that no longer exist
+    cached_pods = set(POD_LIMITS_CACHE.keys())
+    removed_pods = cached_pods - current_pods
+    for pod in removed_pods:
+        del POD_LIMITS_CACHE[pod]
+        print(f"[Removed from cache: {pod}]", file=sys.stderr)
+    
     return metrics
 
 
@@ -98,10 +138,11 @@ def display_metrics(metrics):
 
 def main():
     parser = argparse.ArgumentParser(description='Monitor pod resources with current/limit fractions')
-    parser.add_argument('--watch', type=int, metavar='SECONDS', help='Watch mode with update interval')
+    parser.add_argument('--watch', type=int, metavar='SECONDS', default=5, 
+                        help='Watch mode with update interval (default: 5 seconds). Use --watch 0 for one-time check.')
     args = parser.parse_args()
     
-    if args.watch:
+    if args.watch > 0:
         try:
             while True:
                 print("\033[2J\033[H")  # Clear screen
