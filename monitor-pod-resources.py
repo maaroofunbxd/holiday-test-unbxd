@@ -29,11 +29,11 @@ def parse_resource(value):
     return float(value)
 
 
-def get_pod_limits():
+def get_pod_limits(label_selector):
     """Get all pod resource limits/requests in one call"""
     cmd = [
         "kubectl", "get", "pods", 
-        "-l", "algo in (personalization,ranking)",
+        "-l", label_selector,
         "-o", "custom-columns=POD:.metadata.name,CONTAINER:.spec.containers[*].name,CPU_REQ:.spec.containers[*].resources.requests.cpu,MEM_REQ:.spec.containers[*].resources.requests.memory,CPU_LIM:.spec.containers[*].resources.limits.cpu,MEM_LIM:.spec.containers[*].resources.limits.memory",
         "--no-headers"
     ]
@@ -69,10 +69,10 @@ def get_pod_limits():
     return limits_map
 
 
-def get_pod_metrics(limits_map):
+def get_pod_metrics(limits_map, label_selector):
     """Get current pod metrics and combine with limits"""
     # Get current usage
-    cmd = ["kubectl", "top", "pods", "-l", "algo in (personalization,ranking)", "--no-headers"]
+    cmd = ["kubectl", "top", "pods", "-l", label_selector, "--no-headers"]
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
@@ -133,25 +133,28 @@ def main():
     parser = argparse.ArgumentParser(description='Monitor pod resources with current/limit fractions')
     parser.add_argument('--watch', type=int, metavar='SECONDS', default=5, 
                         help='Watch mode with update interval (default: 5 seconds). Use --watch 0 for one-time check.')
+    parser.add_argument('--label', '-l', type=str, default='algo in (personalization,ranking)',
+                        help='Label selector for pods (default: "algo in (personalization,ranking)")')
     args = parser.parse_args()
     
     if args.watch > 0:
         try:
             while True:
                 print("\033[2J\033[H")  # Clear screen
-                print(f"Refreshing every {args.watch} seconds... (Ctrl+C to stop)\n")
+                print(f"Refreshing every {args.watch} seconds... (Ctrl+C to stop)")
+                print(f"Label: {args.label}\n")
                 
                 # Fetch limits before each iteration
-                limits_map = get_pod_limits()
-                metrics = get_pod_metrics(limits_map)
+                limits_map = get_pod_limits(args.label)
+                metrics = get_pod_metrics(limits_map, args.label)
                 display_metrics(metrics)
                 
                 time.sleep(args.watch)
         except KeyboardInterrupt:
             print("\nStopped monitoring.")
     else:
-        limits_map = get_pod_limits()
-        metrics = get_pod_metrics(limits_map)
+        limits_map = get_pod_limits(args.label)
+        metrics = get_pod_metrics(limits_map, args.label)
         display_metrics(metrics)
 
 
