@@ -103,10 +103,16 @@ def get_pod_metrics(limits_map):
         cpu_fraction = f"{cpu_current_val:.2f}/{cpu_limit_val:.2f}" if cpu_limit_val else f"{cpu_current}/N/A"
         mem_fraction_gb = f"{mem_current_val/(1024**3):.2f}/{mem_limit_val/(1024**3):.2f}Gi" if mem_limit_val else f"{mem_current}/N/A"
         
+        # Calculate percentages
+        cpu_percent = f"{(cpu_current_val/cpu_limit_val)*100:.1f}%" if cpu_limit_val and cpu_current_val else "N/A"
+        mem_percent = f"{(mem_current_val/mem_limit_val)*100:.1f}%" if mem_limit_val and mem_current_val else "N/A"
+        
         metrics.append({
             'pod': pod_name,
             'cpu': cpu_fraction,
+            'cpu_percent': cpu_percent,
             'memory': mem_fraction_gb,
+            'mem_percent': mem_percent,
         })
     
     return metrics
@@ -114,11 +120,11 @@ def get_pod_metrics(limits_map):
 
 def display_metrics(metrics):
     """Display metrics in a table format"""
-    print(f"{'POD':<45} {'CPU (current/limit)':<25} {'MEMORY (current/limit)':<25}")
-    print("=" * 95)
+    print(f"{'POD':<45} {'CPU (current/limit)':<25} {'CPU %':<10} {'MEMORY (current/limit)':<25} {'MEM %':<10}")
+    print("=" * 115)
     
     for m in metrics:
-        print(f"{m['pod']:<45} {m['cpu']:<25} {m['memory']:<25}")
+        print(f"{m['pod']:<45} {m['cpu']:<25} {m['cpu_percent']:<10} {m['memory']:<25} {m['mem_percent']:<10}")
     
     print()
 
