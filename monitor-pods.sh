@@ -24,3 +24,7 @@ kubectl top pods -l'algo in (personalization,ranking)' --no-headers | while read
         "$MEM_CURRENT/$MEM_LIMIT (req:$MEM_REQUEST)"
 done
 
+
+
+
+

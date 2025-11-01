@@ -9,3 +9,7 @@ watch -n "$INTERVAL" "kubectl top pods -l'algo in (personalization,ranking)' --n
        BEGIN {printf \"%-40s %-20s %-20s\n\", \"====\", \"============\", \"===============\"} \
        {printf \"%-40s %-20s %-20s\n\", \$1, \$2, \$3}'"
 
+
+
+
+
