@@ -1,5 +1,6 @@
 #!/bin/bash
-
+#kubectl set env deployment/reranker-demo --containers="pyreranker" LOG_LEVEL=DEBUG
+#kubectl set env deployment/reranker-demo --containers="goreranker" LOG_LEVEL=debug
 # Configuration
 NAMESPACE="search"
 LABEL_SELECTOR="app=reranker"
