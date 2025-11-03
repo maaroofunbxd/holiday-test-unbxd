@@ -33,8 +33,16 @@ const payloads = new SharedArray('payloads', () => {
     const filePath = inputFile.startsWith('/') ? inputFile : 
                      (BASE_PATH ? `${BASE_PATH}/${inputFile}` : inputFile);
     console.log("loading file: ", filePath);
-    const filePayloads = open(filePath)
-      .trim()
+    
+    const fileContent = open(filePath).trim();
+    
+    // Skip empty files
+    if (!fileContent) {
+      console.log("skipping empty file: ", filePath);
+      return;
+    }
+    
+    const filePayloads = fileContent
       .split('\n')
       .map(line => JSON.parse(line));
     
