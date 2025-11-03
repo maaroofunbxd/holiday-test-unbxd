@@ -1,3 +1,5 @@
+//aws s3 ls s3://unbxd-des/rerankerloadtest/
+//aws s3 cp s3://unbxd-des/rerankerloadtest/ . --recursive --exclude "*" --include "*.jsonl"
 //watch -n 5 kubectl top pods -l algo=personalization
 //kubectl top pods -l'algo in (personalization,ranking)' --no-headers
 //cat > reranker-load-test.js
@@ -10,6 +12,12 @@ const HOST = __ENV.HOST || 'http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-213
 // ✅ Get input files from environment variable or use default
 // Supports comma-separated list: "file1.jsonl,file2.jsonl,file3.jsonl"
 const inputFiles = (__ENV.INPUT_FILES || 'extracted_payloads_py.jsonl').split(',').map(f => f.trim());
+
+// ✅ Get RPS from environment variable or use default
+const RPS = parseInt(__ENV.RPS || '10');
+
+// ✅ Get duration from environment variable or use default
+const DURATION = __ENV.DURATION || '2m';
 
 // ✅ Load JSONL files — all entries are JSON with sitekey
 const payloads = new SharedArray('payloads', () => {
@@ -32,15 +40,12 @@ export const options = {
   discardResponseBodies: false,
   scenarios: {
     load_test: {
-      executor: 'ramping-arrival-rate',
-      startRate: 5,
+      executor: 'constant-arrival-rate',
+      rate: RPS,            // Configurable flat RPS via RPS env var
       timeUnit: '1s',
-      preAllocatedVUs: 10,
-      maxVUs: 20,
-      stages: [
-        { target: 10, duration: '1m' },
-        { target: 5, duration: '1m' },
-      ],
+      duration: DURATION,   // Configurable duration via DURATION env var
+      preAllocatedVUs: Math.max(10, RPS * 2),  // Pre-allocate VUs based on RPS
+      maxVUs: Math.max(50, RPS * 5),           // Allow scaling based on RPS
     },
   },
 };
