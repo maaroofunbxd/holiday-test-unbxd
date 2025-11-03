@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import argparse
+import re
 from datetime import datetime
 from collections import defaultdict
 
@@ -359,6 +360,65 @@ def display_summary():
     print()
 
 
+def save_stats_to_csv(metrics, output_file):
+    """Save metrics and lifecycle events to CSV files"""
+    # Generate default filename if not provided
+    if output_file is None:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_file = f"pod_stats_{timestamp}.csv"
+    
+    # Remove color codes from metrics for CSV
+    clean_metrics = []
+    for metric in metrics:
+        clean_row = {}
+        for key, value in metric.items():
+            # Remove ANSI color codes
+            if isinstance(value, str):
+                clean_value = re.sub(r'\033\[[0-9;]+m', '', value)
+                clean_row[key] = clean_value
+            else:
+                clean_row[key] = value
+        clean_metrics.append(clean_row)
+    
+    # Save metrics to CSV
+    if clean_metrics:
+        df_metrics = pd.DataFrame(clean_metrics)
+        df_metrics.to_csv(output_file, index=False)
+        print(f"\n\033[92m✓ Metrics saved to:\033[0m {output_file}")
+    
+    # Save lifecycle events to separate CSV
+    if lifecycle_events:
+        events_file = output_file.replace('.csv', '_events.csv')
+        df_events = pd.DataFrame(lifecycle_events)
+        df_events.to_csv(events_file, index=False)
+        print(f"\033[92m✓ Lifecycle events saved to:\033[0m {events_file}")
+    
+    # Save summary statistics
+    summary_file = output_file.replace('.csv', '_summary.txt')
+    with open(summary_file, 'w') as f:
+        f.write("Pod Resource Statistics Summary\n")
+        f.write("=" * 50 + "\n\n")
+        f.write(f"Total pods tracked: {len(pod_history)}\n")
+        active_pods = sum(1 for h in pod_history.values() if h['last_seen'] != 'DELETED')
+        deleted_pods = sum(1 for h in pod_history.values() if h['last_seen'] == 'DELETED')
+        f.write(f"Active pods: {active_pods}\n")
+        f.write(f"Deleted pods: {deleted_pods}\n\n")
+        
+        # Per-pod details
+        f.write("Per-Pod Statistics:\n")
+        f.write("-" * 50 + "\n")
+        for pod_name, history in sorted(pod_history.items()):
+            f.write(f"\n{pod_name}:\n")
+            f.write(f"  First seen: {history['first_seen']}\n")
+            f.write(f"  Last seen: {history['last_seen']}\n")
+            if history['min_cpu'] is not None:
+                f.write(f"  CPU: min={history['min_cpu']:.3f}, max={history['max_cpu']:.3f}\n")
+            if history['min_mem'] is not None:
+                f.write(f"  Memory: min={history['min_mem']/(1024**3):.2f}Gi, max={history['max_mem']/(1024**3):.2f}Gi\n")
+    
+    print(f"\033[92m✓ Summary saved to:\033[0m {summary_file}\n")
+
+
 def main():
     parser = argparse.ArgumentParser(description='Monitor pod resources with current/limit fractions')
     parser.add_argument('--watch', type=int, metavar='SECONDS', default=5, 
@@ -374,6 +434,8 @@ def main():
                         help='Number of recent lifecycle events to show when stats are enabled (default: 10, use 0 to hide, -1 for ALL events)')
     parser.add_argument('--show-changes', '-c', action='store_true',
                         help='Show real-time change notifications as they happen (pod created/deleted)')
+    parser.add_argument('--output', '-o', type=str, default=None, metavar='FILE',
+                        help='Output CSV file for stats (default: pod_stats_TIMESTAMP.csv). Only used with --stats.')
     args = parser.parse_args()
     
     # Stats mode: collect data for specified duration
@@ -420,6 +482,9 @@ def main():
         # Show lifecycle events
         if args.events != 0 and lifecycle_events:
             display_lifecycle_events(args.events)
+        
+        # Save to CSV
+        save_stats_to_csv(metrics, args.output)
     
     # Regular watch mode: real-time monitoring without stats
     elif args.watch > 0:
