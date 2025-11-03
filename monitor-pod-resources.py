@@ -1,3 +1,4 @@
+#cd mrf; python3 holiday-test-unbxd/monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embeddings)" --output 20251103-1810test.csv
 #!/usr/bin/env python3
 """
 Monitor Kubernetes pod resources showing current/limit as fractions
@@ -105,20 +106,22 @@ def get_pod_limits(label_selector):
     return limits_map
 
 
-def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False):
+def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False, is_new=True):
     """Update historical tracking for a pod"""
     history = pod_history[pod_name]
     
     # Track first seen
     if history['first_seen'] is None:
         history['first_seen'] = timestamp
-        lifecycle_events.append({
-            'time': timestamp,
-            'pod': pod_name,
-            'event': 'CREATED'
-        })
-        if show_changes:
-            print(f"\n\033[92m✓ POD CREATED:\033[0m {pod_name} at {timestamp}")
+        # Only log CREATED event if this is a genuinely new pod (not initial population)
+        if is_new:
+            lifecycle_events.append({
+                'time': timestamp,
+                'pod': pod_name,
+                'event': 'CREATED'
+            })
+            if show_changes:
+                print(f"\n\033[92m✓ POD CREATED:\033[0m {pod_name} at {timestamp}")
     
     # Update last seen
     history['last_seen'] = timestamp
@@ -161,6 +164,34 @@ def check_deleted_pods(current_pods, timestamp, show_changes=False):
                     print(f"\n\033[91m✗ POD DELETED:\033[0m {pod_name} at {timestamp}")
 
 
+def initialize_pod_history(limits_map, label_selector):
+    """Initialize pod_history with existing pods (avoids marking them as CREATED)"""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    # Get current usage
+    cmd = ["kubectl", "top", "pods", "-l", label_selector, "--no-headers"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        return
+    
+    for line in result.stdout.strip().split('\n'):
+        if not line:
+            continue
+        
+        parts = line.split()
+        pod_name = parts[0]
+        cpu_current = parts[1]
+        mem_current = parts[2]
+        
+        # Parse resource values
+        cpu_current_val = parse_resource(cpu_current)
+        mem_current_val = parse_resource(mem_current)
+        
+        # Initialize history without marking as CREATED
+        update_pod_history(pod_name, cpu_current_val, mem_current_val, timestamp, show_changes=False, is_new=False)
+
+
 def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=False):
     """Get current pod metrics and combine with limits"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -200,7 +231,7 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         
         # Update history only if stats tracking is enabled
         if show_stats:
-            update_pod_history(pod_name, cpu_current_val, mem_current_val, timestamp, show_changes)
+            update_pod_history(pod_name, cpu_current_val, mem_current_val, timestamp, show_changes, is_new=True)
         
         # Get historical data (only relevant if stats enabled)
         history = pod_history.get(pod_name, {}) if show_stats else {}
@@ -447,6 +478,12 @@ def main():
             print(f"\033[1mReal-time change alerts:\033[0m ENABLED")
         print()
         
+        # Initialize pod_history with existing pods before monitoring
+        print("\033[2mInitializing with existing pods...\033[0m")
+        limits_map = get_pod_limits(args.label)
+        initialize_pod_history(limits_map, args.label)
+        print(f"\033[2mTracking {len(pod_history)} existing pod(s)\033[0m\n")
+        
         start_time = time.time()
         iteration = 0
         
@@ -485,6 +522,69 @@ def main():
         
         # Save to CSV
         save_stats_to_csv(metrics, args.output)
+    
+    # Continuous stats mode: track stats indefinitely
+    elif args.stats == -1:
+        print(f"\033[1m\033[96m📊 Continuous statistics tracking...\033[0m \033[2m(Ctrl+C to stop)\033[0m")
+        print(f"\033[1mLabel:\033[0m {args.label}")
+        print(f"\033[1mPolling interval:\033[0m {args.watch} seconds")
+        if args.show_changes:
+            print(f"\033[1mReal-time change alerts:\033[0m ENABLED")
+        print()
+        
+        # Initialize pod_history with existing pods before monitoring
+        print("\033[2mInitializing with existing pods...\033[0m")
+        limits_map = get_pod_limits(args.label)
+        initialize_pod_history(limits_map, args.label)
+        print(f"\033[2mTracking {len(pod_history)} existing pod(s)\033[0m\n")
+        
+        try:
+            iteration = 0
+            while True:
+                print("\033[2J\033[H")  # Clear screen
+                
+                print(f"\033[1m\033[96mContinuous Statistics Tracking\033[0m \033[2m(Ctrl+C to stop and save)\033[0m")
+                print(f"\033[1mLabel:\033[0m {args.label}")
+                print(f"\033[1mIteration:\033[0m {iteration + 1}")
+                
+                # Fetch and process metrics with stats tracking
+                limits_map = get_pod_limits(args.label)
+                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes)
+                
+                # Show summary
+                display_summary()
+                
+                # Show current metrics
+                display_metrics(metrics, args.format)
+                
+                # Show lifecycle events
+                if args.events != 0 and lifecycle_events:
+                    display_lifecycle_events(args.events)
+                
+                iteration += 1
+                time.sleep(args.watch)
+                
+        except KeyboardInterrupt:
+            print("\n\n\033[2mStopped monitoring.\033[0m\n")
+            
+            # Show final results
+            print("\033[1m\033[96m" + "="*80 + "\033[0m")
+            print("\033[1m\033[96m📊 FINAL STATISTICS\033[0m")
+            print("\033[1m\033[96m" + "="*80 + "\033[0m\n")
+            
+            display_summary()
+            
+            # Show final table with stats
+            limits_map = get_pod_limits(args.label)
+            metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False)
+            display_metrics(metrics, args.format)
+            
+            # Show lifecycle events
+            if args.events != 0 and lifecycle_events:
+                display_lifecycle_events(args.events)
+            
+            # Save to CSV
+            save_stats_to_csv(metrics, args.output)
     
     # Regular watch mode: real-time monitoring without stats
     elif args.watch > 0:
