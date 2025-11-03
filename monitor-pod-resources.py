@@ -9,6 +9,8 @@ import subprocess
 import sys
 import time
 import argparse
+from datetime import datetime
+from collections import defaultdict
 
 try:
     import pandas as pd
@@ -25,6 +27,23 @@ except ImportError:
     TABULATE_AVAILABLE = False
     print("Error: tabulate is required. Install with: pip install tabulate", file=sys.stderr)
     sys.exit(1)
+
+
+# Global tracking for historical data
+pod_history = defaultdict(lambda: {
+    'cpu_values': [],
+    'mem_values': [],
+    'first_seen': None,
+    'last_seen': None,
+    'min_cpu': None,
+    'max_cpu': None,
+    'min_mem': None,
+    'max_mem': None,
+    'prev_cpu': None,
+    'prev_mem': None
+})
+
+lifecycle_events = []
 
 
 def parse_resource(value):
@@ -85,8 +104,66 @@ def get_pod_limits(label_selector):
     return limits_map
 
 
-def get_pod_metrics(limits_map, label_selector):
+def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False):
+    """Update historical tracking for a pod"""
+    history = pod_history[pod_name]
+    
+    # Track first seen
+    if history['first_seen'] is None:
+        history['first_seen'] = timestamp
+        lifecycle_events.append({
+            'time': timestamp,
+            'pod': pod_name,
+            'event': 'CREATED'
+        })
+        if show_changes:
+            print(f"\n\033[92m✓ POD CREATED:\033[0m {pod_name} at {timestamp}")
+    
+    # Update last seen
+    history['last_seen'] = timestamp
+    
+    # Store values
+    if cpu_val is not None:
+        history['cpu_values'].append(cpu_val)
+        history['prev_cpu'] = cpu_val
+        
+        # Update min/max
+        if history['min_cpu'] is None or cpu_val < history['min_cpu']:
+            history['min_cpu'] = cpu_val
+        if history['max_cpu'] is None or cpu_val > history['max_cpu']:
+            history['max_cpu'] = cpu_val
+    
+    if mem_val is not None:
+        history['mem_values'].append(mem_val)
+        history['prev_mem'] = mem_val
+        
+        # Update min/max
+        if history['min_mem'] is None or mem_val < history['min_mem']:
+            history['min_mem'] = mem_val
+        if history['max_mem'] is None or mem_val > history['max_mem']:
+            history['max_mem'] = mem_val
+
+
+def check_deleted_pods(current_pods, timestamp, show_changes=False):
+    """Check if any tracked pods are no longer present"""
+    for pod_name in list(pod_history.keys()):
+        if pod_name not in current_pods:
+            history = pod_history[pod_name]
+            if history['last_seen'] != 'DELETED':
+                lifecycle_events.append({
+                    'time': timestamp,
+                    'pod': pod_name,
+                    'event': 'DELETED'
+                })
+                history['last_seen'] = 'DELETED'
+                if show_changes:
+                    print(f"\n\033[91m✗ POD DELETED:\033[0m {pod_name} at {timestamp}")
+
+
+def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=False):
     """Get current pod metrics and combine with limits"""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
     # Get current usage
     cmd = ["kubectl", "top", "pods", "-l", label_selector, "--no-headers"]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -96,6 +173,8 @@ def get_pod_metrics(limits_map, label_selector):
         return []
     
     metrics = []
+    current_pods = set()
+    
     for line in result.stdout.strip().split('\n'):
         if not line:
             continue
@@ -104,6 +183,8 @@ def get_pod_metrics(limits_map, label_selector):
         pod_name = parts[0]
         cpu_current = parts[1]
         mem_current = parts[2]
+        
+        current_pods.add(pod_name)
         
         # Get limits from the map
         limits = limits_map.get(pod_name, {})
@@ -116,6 +197,13 @@ def get_pod_metrics(limits_map, label_selector):
         mem_current_val = parse_resource(mem_current)
         mem_limit_val = parse_resource(mem_limit)
         
+        # Update history only if stats tracking is enabled
+        if show_stats:
+            update_pod_history(pod_name, cpu_current_val, mem_current_val, timestamp, show_changes)
+        
+        # Get historical data (only relevant if stats enabled)
+        history = pod_history.get(pod_name, {}) if show_stats else {}
+        
         cpu_fraction = f"{cpu_current_val:.2f}/{cpu_limit_val:.2f}" if cpu_limit_val else f"{cpu_current}/N/A"
         mem_fraction_gb = f"{mem_current_val/(1024**3):.2f}/{mem_limit_val/(1024**3):.2f}Gi" if mem_limit_val else f"{mem_current}/N/A"
         
@@ -123,13 +211,44 @@ def get_pod_metrics(limits_map, label_selector):
         cpu_percent = f"{(cpu_current_val/cpu_limit_val)*100:.1f}%" if cpu_limit_val and cpu_current_val else "N/A"
         mem_percent = f"{(mem_current_val/mem_limit_val)*100:.1f}%" if mem_limit_val and mem_current_val else "N/A"
         
-        metrics.append({
+        metric_row = {
             'POD': pod_name,
             'CPU (current/limit)': cpu_fraction,
             'CPU %': cpu_percent,
             'MEMORY (current/limit)': mem_fraction_gb,
             'MEM %': mem_percent,
-        })
+        }
+        
+        # Add statistics if requested
+        if show_stats and history:
+            # CPU delta
+            if len(history.get('cpu_values', [])) > 1:
+                cpu_delta = cpu_current_val - history['cpu_values'][-2]
+                cpu_delta_str = f"{cpu_delta:+.3f}" if cpu_delta != 0 else "0.000"
+            else:
+                cpu_delta_str = "N/A"
+            
+            # Memory delta (in MB)
+            if len(history.get('mem_values', [])) > 1:
+                mem_delta = (mem_current_val - history['mem_values'][-2]) / (1024**2)
+                mem_delta_str = f"{mem_delta:+.0f}Mi" if mem_delta != 0 else "0Mi"
+            else:
+                mem_delta_str = "N/A"
+            
+            metric_row.update({
+                'CPU Δ': cpu_delta_str,
+                'CPU Min': f"{history.get('min_cpu', 0):.3f}" if history.get('min_cpu') is not None else "N/A",
+                'CPU Max': f"{history.get('max_cpu', 0):.3f}" if history.get('max_cpu') is not None else "N/A",
+                'Mem Δ': mem_delta_str,
+                'Mem Min': f"{history.get('min_mem', 0)/(1024**3):.2f}Gi" if history.get('min_mem') is not None else "N/A",
+                'Mem Max': f"{history.get('max_mem', 0)/(1024**3):.2f}Gi" if history.get('max_mem') is not None else "N/A",
+            })
+        
+        metrics.append(metric_row)
+    
+    # Check for deleted pods (only if stats tracking is enabled)
+    if show_stats:
+        check_deleted_pods(current_pods, timestamp, show_changes)
     
     return metrics
 
@@ -153,6 +272,22 @@ def colorize_percentage(val):
         return val
 
 
+def colorize_delta(val):
+    """Colorize delta values (positive = red, negative = green)"""
+    if val == 'N/A' or val == '0.000' or val == '0Mi':
+        return val
+    
+    try:
+        if val.startswith('+'):
+            return f'\033[93m{val}\033[0m'  # Yellow for increase
+        elif val.startswith('-'):
+            return f'\033[92m{val}\033[0m'  # Green for decrease
+        else:
+            return val
+    except:
+        return val
+
+
 def display_metrics(metrics, table_format='grid'):
     """Display metrics using pandas DataFrame with tabulate"""
     if not metrics:
@@ -165,8 +300,63 @@ def display_metrics(metrics, table_format='grid'):
     df['CPU %'] = df['CPU %'].apply(colorize_percentage)
     df['MEM %'] = df['MEM %'].apply(colorize_percentage)
     
+    # Apply coloring to delta columns if they exist
+    if 'CPU Δ' in df.columns:
+        df['CPU Δ'] = df['CPU Δ'].apply(colorize_delta)
+    if 'Mem Δ' in df.columns:
+        df['Mem Δ'] = df['Mem Δ'].apply(colorize_delta)
+    
     # Print with tabulate for beautiful tables
     print(f"\n{tabulate(df, headers='keys', tablefmt=table_format, showindex=False)}\n")
+
+
+def display_lifecycle_events(limit=10):
+    """Display recent lifecycle events"""
+    if not lifecycle_events:
+        return
+    
+    print("\033[1m\033[96m📊 Pod Lifecycle Events:\033[0m")
+    
+    # If limit is -1, show all events; otherwise show last N
+    if limit == -1:
+        recent_events = lifecycle_events
+        print(f"\033[2m(Showing all {len(lifecycle_events)} events)\033[0m")
+    else:
+        recent_events = lifecycle_events[-limit:]
+        if len(lifecycle_events) > limit:
+            print(f"\033[2m(Showing last {limit} of {len(lifecycle_events)} total events)\033[0m")
+    
+    events_df = pd.DataFrame(recent_events)
+    
+    # Colorize events
+    def colorize_event(event):
+        if event == 'CREATED':
+            return f'\033[92m{event}\033[0m'  # Green
+        elif event == 'DELETED':
+            return f'\033[91m{event}\033[0m'  # Red
+        return event
+    
+    events_df['event'] = events_df['event'].apply(colorize_event)
+    
+    print(tabulate(events_df, headers=['Time', 'Pod', 'Event'], tablefmt='simple', showindex=False))
+    print()
+
+
+def display_summary():
+    """Display summary statistics"""
+    if not pod_history:
+        return
+    
+    print("\033[1m\033[96m📈 Summary Statistics:\033[0m")
+    print(f"Total pods tracked: {len(pod_history)}")
+    
+    active_pods = sum(1 for h in pod_history.values() if h['last_seen'] != 'DELETED')
+    deleted_pods = sum(1 for h in pod_history.values() if h['last_seen'] == 'DELETED')
+    
+    print(f"Active pods: \033[92m{active_pods}\033[0m")
+    if deleted_pods > 0:
+        print(f"Deleted pods: \033[91m{deleted_pods}\033[0m")
+    print()
 
 
 def main():
@@ -178,26 +368,84 @@ def main():
     parser.add_argument('--format', '-f', type=str, default='grid',
                         choices=['grid', 'fancy_grid', 'psql', 'github', 'simple', 'plain', 'pretty', 'pipe'],
                         help='Table format (default: grid). Options: grid, fancy_grid, psql, github, simple, plain, pretty, pipe')
+    parser.add_argument('--stats', '-s', type=int, metavar='SECONDS', default=0,
+                        help='Enable statistics tracking. Positive value = run for that duration (e.g., 30), -1 = continuous tracking in watch mode')
+    parser.add_argument('--events', '-e', type=int, default=10, metavar='N',
+                        help='Number of recent lifecycle events to show when stats are enabled (default: 10, use 0 to hide, -1 for ALL events)')
+    parser.add_argument('--show-changes', '-c', action='store_true',
+                        help='Show real-time change notifications as they happen (pod created/deleted)')
     args = parser.parse_args()
     
-    if args.watch > 0:
+    # Stats mode: collect data for specified duration
+    if args.stats > 0:
+        print(f"\033[1m\033[96m📊 Collecting statistics for {args.stats} seconds...\033[0m \033[2m(Ctrl+C to stop early)\033[0m")
+        print(f"\033[1mLabel:\033[0m {args.label}")
+        print(f"\033[1mPolling interval:\033[0m {args.watch} seconds")
+        if args.show_changes:
+            print(f"\033[1mReal-time change alerts:\033[0m ENABLED")
+        print()
+        
+        start_time = time.time()
+        iteration = 0
+        
         try:
+            while (time.time() - start_time) < args.stats:
+                elapsed = int(time.time() - start_time)
+                remaining = args.stats - elapsed
+                
+                print(f"\r\033[KIteration {iteration + 1} | Elapsed: {elapsed}s | Remaining: {remaining}s", end='', flush=True)
+                
+                # Fetch and process metrics with stats tracking (silent mode)
+                limits_map = get_pod_limits(args.label)
+                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes)
+                
+                iteration += 1
+                time.sleep(args.watch)
+                
+        except KeyboardInterrupt:
+            print("\n\033[2mStopped early.\033[0m")
+        
+        # Show final results
+        print("\n\n\033[1m\033[96m" + "="*80 + "\033[0m")
+        print("\033[1m\033[96m📊 STATISTICS SUMMARY\033[0m")
+        print("\033[1m\033[96m" + "="*80 + "\033[0m\n")
+        
+        display_summary()
+        
+        # Show final table with stats
+        limits_map = get_pod_limits(args.label)
+        metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False)
+        display_metrics(metrics, args.format)
+        
+        # Show lifecycle events
+        if args.events != 0 and lifecycle_events:
+            display_lifecycle_events(args.events)
+    
+    # Regular watch mode: real-time monitoring without stats
+    elif args.watch > 0:
+        try:
+            iteration = 0
             while True:
                 print("\033[2J\033[H")  # Clear screen
+                
                 print(f"\033[1m\033[96mRefreshing every {args.watch} seconds...\033[0m \033[2m(Ctrl+C to stop)\033[0m")
                 print(f"\033[1mLabel:\033[0m {args.label}")
+                print(f"\033[1mIteration:\033[0m {iteration + 1}")
                 
-                # Fetch limits before each iteration
+                # Fetch limits before each iteration (no stats tracking)
                 limits_map = get_pod_limits(args.label)
-                metrics = get_pod_metrics(limits_map, args.label)
+                metrics = get_pod_metrics(limits_map, args.label, show_stats=False)
                 display_metrics(metrics, args.format)
                 
+                iteration += 1
                 time.sleep(args.watch)
         except KeyboardInterrupt:
             print("\n\033[2mStopped monitoring.\033[0m")
+    
+    # One-time check mode
     else:
         limits_map = get_pod_limits(args.label)
-        metrics = get_pod_metrics(limits_map, args.label)
+        metrics = get_pod_metrics(limits_map, args.label, show_stats=False)
         display_metrics(metrics, args.format)
 
 
