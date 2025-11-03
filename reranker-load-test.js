@@ -32,7 +32,7 @@ const payloads = new SharedArray('payloads', () => {
     // Construct full path: if inputFile is absolute, use as-is; otherwise prepend BASE_PATH
     const filePath = inputFile.startsWith('/') ? inputFile : 
                      (BASE_PATH ? `${BASE_PATH}/${inputFile}` : inputFile);
-    
+    console.log("loading file: ", filePath);
     const filePayloads = open(filePath)
       .trim()
       .split('\n')
