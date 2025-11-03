@@ -14,8 +14,8 @@ const HOST = __ENV.HOST || 'http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-213
 const inputFiles = (__ENV.INPUT_FILES || 'extracted_payloads_py.jsonl').split(',').map(f => f.trim());
 
 // ✅ Get base path for files (relative to cwd, not script location)
-// Default is '..' to go up one level from script to cwd when script is in subdirectory
-const BASE_PATH = __ENV.BASE_PATH !== undefined ? __ENV.BASE_PATH : '..';
+// Default is '.' (current directory) - input files are relative to pwd
+const BASE_PATH = __ENV.BASE_PATH !== undefined ? __ENV.BASE_PATH : '.';
 
 // ✅ Get RPS from environment variable or use default
 const RPS = parseInt(__ENV.RPS || '10');
