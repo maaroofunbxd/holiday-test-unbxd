@@ -6,26 +6,8 @@
 # kubectl top pods -l'algo in (personalization,ranking)' --no-headers
 #kubectl top pod -lserving.knative.dev/service=ranking-f68e76d65c-predictor
 # Cleanup function to kill background processes
-cleanup() {
-    echo ""
-    echo "🛑 Interrupt received, cleaning up..."
-    
-    # Kill monitor processes if they're still running
-    if [ ! -z "$MONITOR_PID1" ] && kill -0 $MONITOR_PID1 2>/dev/null; then
-        echo "  Stopping monitor 1 (PID: $MONITOR_PID1)..."
-        kill $MONITOR_PID1 2>/dev/null
-    fi
-    
-    if [ ! -z "$MONITOR_PID2" ] && kill -0 $MONITOR_PID2 2>/dev/null; then
-        echo "  Stopping monitor 2 (PID: $MONITOR_PID2)..."
-        kill $MONITOR_PID2 2>/dev/null
-    fi
-    
-    echo "✓ Cleanup complete"
-    exit 130
-}
-
 # Trap Ctrl+C (SIGINT) and other termination signals
+source s3_upload.sh;
 trap cleanup SIGINT SIGTERM
 
 #run from ai-prod-us-east-1-eks@ip-10-0-40-71
