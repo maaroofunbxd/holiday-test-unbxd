@@ -116,6 +116,17 @@ This will:
 5. Upload all queued files to S3
 6. Clean up queue files
 
+### Skip S3 Upload (for testing)
+```bash
+SKIP_S3_UPLOAD=true bash rerankerstart.sh
+```
+
+### Change S3 Bucket
+Edit the `S3_BUCKET` variable in the script:
+```bash
+S3_BUCKET="s3://your-bucket/your-path/"
+```
+
 ### Run Standalone K6 Test
 ```bash
 bash run-reranker-load.sh
@@ -154,11 +165,42 @@ All files are uploaded to: `s3://unbxd-des/rerankerloadtest/`
 1. **Simple:** No environment variables, just a fixed file name
 2. **Decoupling:** Scripts don't need to know about S3 or AWS CLI
 3. **Flexibility:** Easy to add more output files to queue
-4. **Error Handling:** Bash script handles all upload logic and errors
+4. **Error Handling:** Detailed tracking of uploaded/failed/missing files
 5. **Debugging:** Queue file shows exactly what will be uploaded
-6. **Single Responsibility:** 
+6. **Configurable:** Can skip uploads, change S3 bucket easily
+7. **Single Responsibility:** 
    - Python/JS scripts: Generate outputs and list them in queue
    - Bash script: Handle S3 uploads
+
+## Refactored Upload Features
+
+### Configuration
+- **S3_BUCKET**: Centralized bucket configuration at top of script
+- **SKIP_S3_UPLOAD**: Environment variable to skip uploads for testing
+
+### Improved Upload Function
+- **Modular**: `upload_from_queue()` function for clean code
+- **Better Tracking**: Counts uploaded, failed, and missing files separately
+- **Cleaner Output**: Emojis and summary statistics per queue
+- **Error Suppression**: `--only-show-errors` flag for cleaner AWS output
+- **Safer**: Validates file existence before upload attempt
+
+### Example Output
+```
+📤 Uploading to S3: s3://unbxd-des/rerankerloadtest/
+📁 Processing: holiday-test-unbxd/.s3_upload_queue
+  ✅ 20251105-1449reranker-demo.csv
+  ✅ 20251105-1449reranker-demo_summary.txt
+  ⚠️  Not found: 20251105-1449reranker-demo_events.csv
+  └─ Uploaded: 2 | Failed: 0 | Missing: 1
+📁 Processing: holiday-test-unbxd/.s3_upload_queue
+  ✅ 20251105-1449raw-data.json
+  ✅ 20251105-1449summary.json
+  └─ Uploaded: 2 | Failed: 0 | Missing: 0
+=========================================
+✅ Total files uploaded: 4
+=========================================
+```
 
 ## Error Handling
 

@@ -27,6 +27,10 @@ wait $MONITOR_PID1
 wait $MONITOR_PID2
 echo "✓ Both monitors completed"
 echo ""
+# Upload all outputs to S3
+source s3_upload.sh;
+run_s3_upload \
+    ~/mrf/loadtest/holiday-test-unbxd/.s3_upload_queue
 
 cd ..
 
@@ -41,50 +45,8 @@ k6 run -e RPS=40 -e DURATION=60s -e HOST=http://internal-a33ac7ecf86484bdb9a6a55
 echo "$(pwd)/${time_ist}raw-data.json" >> .s3_upload_queue
 echo "$(pwd)/${time_ist}summary.json" >> .s3_upload_queue
 echo "📝 k6 output files added to upload queue"
+source s3_upload.sh;
+run_s3_upload \
+    ~/mrf/holiday-test-unbxd/.s3_upload_queue \
 
 cd ..
-
-
-# ========================================
-# Upload all files in queue to S3
-# ========================================
-echo ""
-echo "========================================="
-echo "📤 Uploading all outputs to S3..."
-echo "========================================="
-
-# Collect all queue files from both directories
-QUEUE_FILES=(
-    ~/mrf/holiday-test-unbxd/.s3_upload_queue
-    ~/mrf/loadtest/holiday-test-unbxd/.s3_upload_queue
-)
-
-upload_count=0
-for queue_file in "${QUEUE_FILES[@]}"; do
-    if [ -f "$queue_file" ]; then
-        echo "Processing queue: $queue_file"
-        
-        # Read queue file and upload each file
-        while IFS= read -r file_path; do
-            # Skip empty lines
-            [ -z "$file_path" ] && continue
-            
-            if [ -f "$file_path" ]; then
-                aws s3 cp "$file_path" s3://unbxd-des/rerankerloadtest/ && echo "  ✓ Uploaded: $(basename $file_path)" || echo "  ✗ Failed: $(basename $file_path)"
-                ((upload_count++))
-            else
-                echo "  ⚠ File not found: $file_path"
-            fi
-        done < "$queue_file"
-        
-        # Clean up queue file
-        rm -f "$queue_file"
-    fi
-done
-
-echo "========================================="
-echo "✓ Uploaded $upload_count file(s) to S3"
-echo "========================================="
-echo ""
-
-
