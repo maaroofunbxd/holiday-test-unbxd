@@ -479,7 +479,7 @@ def save_stats_to_csv(metrics, output_file):
         print(f"\033[92m✓ Lifecycle events saved to:\033[0m {events_file}")
         output_files.append(events_file)
     
-    # Save summary statistics
+    # Save summary statistics (high-level overview only)
     summary_file = output_file.replace('.csv', '_summary.txt')
     with open(summary_file, 'w') as f:
         f.write("Container Resource Statistics Summary\n")
@@ -490,17 +490,18 @@ def save_stats_to_csv(metrics, output_file):
         f.write(f"Active containers: {active_containers}\n")
         f.write(f"Deleted containers: {deleted_containers}\n\n")
         
-        # Per-container details
-        f.write("Per-Container Statistics:\n")
-        f.write("-" * 50 + "\n")
-        for container_key, history in sorted(pod_history.items()):
-            f.write(f"\n{container_key}:\n")
-            f.write(f"  First seen: {history['first_seen']}\n")
-            f.write(f"  Last seen: {history['last_seen']}\n")
-            if history['min_cpu'] is not None:
-                f.write(f"  CPU: min={history['min_cpu']:.3f}, max={history['max_cpu']:.3f}\n")
-            if history['min_mem'] is not None:
-                f.write(f"  Memory: min={history['min_mem']/(1024**3):.2f}Gi, max={history['max_mem']/(1024**3):.2f}Gi\n")
+        # Lifecycle events summary
+        if lifecycle_events:
+            f.write("Lifecycle Events:\n")
+            f.write("-" * 50 + "\n")
+            created_count = sum(1 for e in lifecycle_events if e['event'] == 'CREATED')
+            deleted_count = sum(1 for e in lifecycle_events if e['event'] == 'DELETED')
+            f.write(f"Total CREATED events: {created_count}\n")
+            f.write(f"Total DELETED events: {deleted_count}\n\n")
+            
+            f.write("Recent Events:\n")
+            for event in lifecycle_events[-10:]:  # Show last 10 events
+                f.write(f"  [{event['time']}] {event['event']}: {event['pod']}\n")
     
     print(f"\033[92m✓ Summary saved to:\033[0m {summary_file}\n")
     output_files.append(summary_file)
