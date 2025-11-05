@@ -7,11 +7,12 @@
 #kubectl top pod -lserving.knative.dev/service=ranking-f68e76d65c-predictor
 # Cleanup function to kill background processes
 # Trap Ctrl+C (SIGINT) and other termination signals
-source s3_upload.sh;
-trap cleanup SIGINT SIGTERM
 
 #run from ai-prod-us-east-1-eks@ip-10-0-40-71
 cd ~/mrf; cd holiday-test-unbxd/;  
+source s3_upload.sh;
+trap cleanup SIGINT SIGTERM
+
 git fetch origin && git rebase origin/main
 rm -f .s3_upload_queue  # Clear any existing queue
 
