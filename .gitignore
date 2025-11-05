@@ -5,6 +5,12 @@
 *test.csv
 *test_summary.txt
 *test_events.csv
+*reranker-demo.csv
+*reranker-demo_summary.txt
+*reranker-demo_events.csv
+*ranking-embedding.csv
+*ranking-embedding_summary.txt
+*ranking-embedding_events.csv
 *raw-data.json
 *summary.json
 *reranker-load-test.txt

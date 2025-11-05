@@ -15,13 +15,17 @@ Scripts automatically queue output files and upload them to S3 using a centraliz
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  rerankerstart.sh (or run-reranker-load.sh)        │
+│  rerankerstart.sh                                   │
 ├─────────────────────────────────────────────────────┤
 │  1. Clear any old queue file                        │
 │     rm -f .s3_upload_queue                         │
 │                                                     │
-│  2. Run Python script                              │
-│     └─> Writes paths to .s3_upload_queue           │
+│  2. Run BOTH Python monitors in PARALLEL           │
+│     ├─> Script #1 (reranker-demo) &               │
+│     │   └─> Writes to .s3_upload_queue            │
+│     └─> Script #2 (ranking/embedding) &           │
+│         └─> Writes to .s3_upload_queue            │
+│     wait for both to complete                      │
 │                                                     │
 │  3. Run k6 script                                  │
 │     └─> Appends paths to .s3_upload_queue          │
@@ -104,10 +108,13 @@ bash rerankerstart.sh
 
 This will:
 1. Clear any old queue files
-2. Run `monitor-pod-resources.py` → writes to `.s3_upload_queue`
-3. Run k6 load test → appends to `.s3_upload_queue`
-4. Upload all queued files to S3
-5. Clean up queue files
+2. Run **TWO** `monitor-pod-resources.py` scripts **in parallel** (simultaneously)
+   - Both monitoring reranker-demo and ranking/embedding pods at the same time
+   - Both write to `.s3_upload_queue`
+3. Wait for both monitors to complete
+4. Run k6 load test → appends to `.s3_upload_queue`
+5. Upload all queued files to S3
+6. Clean up queue files
 
 ### Run Standalone K6 Test
 ```bash
@@ -126,9 +133,15 @@ This will:
 All files are uploaded to: `s3://unbxd-des/rerankerloadtest/`
 
 ### From monitor-pod-resources.py:
-- `20251105-1449test.csv` - Container metrics
-- `20251105-1449test_summary.txt` - Summary statistics
-- `20251105-1449test_events.csv` - Lifecycle events (if any)
+**First run (reranker-demo):**
+- `20251105-1449reranker-demo.csv` - Container metrics
+- `20251105-1449reranker-demo_summary.txt` - Summary statistics
+- `20251105-1449reranker-demo_events.csv` - Lifecycle events (if any)
+
+**Second run (ranking/embedding):**
+- `20251105-1449ranking-embedding.csv` - Container metrics
+- `20251105-1449ranking-embedding_summary.txt` - Summary statistics
+- `20251105-1449ranking-embedding_events.csv` - Lifecycle events (if any)
 
 ### From k6 load tests:
 - `20251105-1449raw-data.json` - Raw k6 data

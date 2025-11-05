@@ -10,7 +10,23 @@ cd ~/mrf; cd holiday-test-unbxd/;
 rm -f .s3_upload_queue  # Clear any existing queue
 
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
-python3 monitor-pod-resources.py --stats 80 --watch 5  -l "app in (reranker-demo)" --output ${time_ist}test.csv
+
+# Run both monitor scripts simultaneously in background
+echo "📊 Starting parallel monitoring..."
+echo "  - Monitoring reranker-demo pods..."
+python3 monitor-pod-resources.py --stats 80 --watch 5  -l "app in (reranker-demo)" --output ${time_ist}reranker-demo.csv &
+MONITOR_PID1=$!
+
+echo "  - Monitoring ranking/embedding pods..."
+python3 monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embedding)" --output ${time_ist}ranking-embedding.csv &
+MONITOR_PID2=$!
+
+# Wait for both monitors to complete
+echo "Waiting for both monitors to complete..."
+wait $MONITOR_PID1
+wait $MONITOR_PID2
+echo "✓ Both monitors completed"
+echo ""
 
 cd ..
 
