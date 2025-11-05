@@ -285,25 +285,34 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         
         # Add statistics if requested
         if show_stats and history:
-            # CPU delta
-            if len(history.get('cpu_values', [])) > 1:
-                cpu_delta = cpu_current_val - history['cpu_values'][-2]
+            cpu_values = history.get('cpu_values', [])
+            mem_values = history.get('mem_values', [])
+            
+            # CPU delta from start (total change)
+            if len(cpu_values) > 1:
+                cpu_delta = cpu_current_val - cpu_values[0]  # Change from first to current
                 cpu_delta_str = f"{cpu_delta:+.3f}" if cpu_delta != 0 else "0.000"
             else:
                 cpu_delta_str = "N/A"
             
-            # Memory delta (in MB)
-            if len(history.get('mem_values', [])) > 1:
-                mem_delta = (mem_current_val - history['mem_values'][-2]) / (1024**2)
+            # Memory delta from start (total change in MB)
+            if len(mem_values) > 1:
+                mem_delta = (mem_current_val - mem_values[0]) / (1024**2)
                 mem_delta_str = f"{mem_delta:+.0f}Mi" if mem_delta != 0 else "0Mi"
             else:
                 mem_delta_str = "N/A"
             
+            # Calculate averages
+            cpu_avg = sum(cpu_values) / len(cpu_values) if cpu_values else 0
+            mem_avg = sum(mem_values) / len(mem_values) if mem_values else 0
+            
             metric_row.update({
                 'CPU Δ': cpu_delta_str,
+                'CPU Avg': f"{cpu_avg:.3f}" if cpu_values else "N/A",
                 'CPU Min': f"{history.get('min_cpu', 0):.3f}" if history.get('min_cpu') is not None else "N/A",
                 'CPU Max': f"{history.get('max_cpu', 0):.3f}" if history.get('max_cpu') is not None else "N/A",
                 'Mem Δ': mem_delta_str,
+                'Mem Avg': f"{mem_avg/(1024**3):.2f}Gi" if mem_values else "N/A",
                 'Mem Min': f"{history.get('min_mem', 0)/(1024**3):.2f}Gi" if history.get('min_mem') is not None else "N/A",
                 'Mem Max': f"{history.get('max_mem', 0)/(1024**3):.2f}Gi" if history.get('max_mem') is not None else "N/A",
             })
