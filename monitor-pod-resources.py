@@ -1,5 +1,5 @@
 #cd mrf; 
-#python3 holiday-test-unbxd/monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embeddings)" --output 20251105-1237test.csv
+#python3 holiday-test-unbxd/monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embeddings)" --output 20251105-1250test.csv
 #cd ..
 #!/usr/bin/env python3
 """
