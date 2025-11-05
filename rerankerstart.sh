@@ -7,6 +7,7 @@
 
 #run from ai-prod-us-east-1-eks@ip-10-0-40-71
 cd ~/mrf; cd holiday-test-unbxd/;  
+git fetch origin && git rebase origin/main
 rm -f .s3_upload_queue  # Clear any existing queue
 
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
@@ -36,7 +37,8 @@ cd ..
 
 
 #run from ubuntu@ip-10-0-1-231
-cd ~/mrf/loadtest/holiday-test-unbxd/;  
+cd ~/mrf/loadtest/holiday-test-unbxd/; 
+git fetch origin && git rebase origin/main 
 FILES=$(find "$(pwd)/reranker-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
 k6 run -e RPS=40 -e DURATION=60s -e HOST=http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json reranker-load-test.js
