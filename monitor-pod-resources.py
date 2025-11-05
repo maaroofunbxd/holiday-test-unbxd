@@ -1,4 +1,6 @@
-#cd mrf; python3 holiday-test-unbxd/monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embeddings)" --output 20251103-1810test.csv
+#cd mrf; 
+#python3 holiday-test-unbxd/monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embeddings)" --output 20251105-1237test.csv
+#cd ..
 #!/usr/bin/env python3
 """
 Monitor Kubernetes pod resources showing current/limit as fractions

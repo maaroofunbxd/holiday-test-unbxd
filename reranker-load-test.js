@@ -1,3 +1,7 @@
+//cd holiday-test-unbxd/;
+//FILES=$(find "$(pwd)/reranker-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
+// k6 run -e RPS=20 -e DURATION=60s -e HOST=http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com -e INPUT_FILES="$FILES" --out json=20251103-1810raw-data.json --summary-export=20251103-1810summary.json reranker-load-test.js ;
+// cd ..
 //aws s3 ls s3://unbxd-des/rerankerloadtest/
 //aws s3 cp s3://unbxd-des/rerankerloadtest/ . --recursive --exclude "*" --include "*.jsonl"
 //watch -n 5 kubectl top pods -l algo=personalization
@@ -60,6 +64,7 @@ export const options = {
       rate: RPS,            // Configurable flat RPS via RPS env var
       timeUnit: '1s',
       duration: DURATION,   // Configurable duration via DURATION env var
+      gracefulStop: '0s',   // Immediately stop iterations when duration ends
       preAllocatedVUs: Math.max(10, RPS * 2),  // Pre-allocate VUs based on RPS
       maxVUs: Math.max(50, RPS * 5),           // Allow scaling based on RPS
     },
