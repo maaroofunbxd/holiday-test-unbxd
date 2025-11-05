@@ -1,5 +1,5 @@
-#time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
-#cd holiday-test-unbxd; python3 monitor-pod-resources.py --stats 80 --watch 5  -l "app in (reranker-demo)" --output ${time_ist}test.csv; cd ..
+# time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
+# cd holiday-test-unbxd; python3 monitor-pod-resources.py --stats 80 --watch 5  -l "app in (reranker-demo)" --output ${time_ist}test.csv; cd ..
 #!/usr/bin/env python3
 """
 Monitor Kubernetes container resources showing current/limit as fractions (per-container tracking)
