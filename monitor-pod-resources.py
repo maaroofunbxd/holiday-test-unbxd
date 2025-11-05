@@ -36,6 +36,7 @@ except ImportError:
 pod_history = defaultdict(lambda: {
     'cpu_values': [],
     'mem_values': [],
+    'timestamps': [],
     'first_seen': None,
     'last_seen': None,
     'min_cpu': None,
@@ -137,6 +138,9 @@ def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False
     
     # Update last seen
     history['last_seen'] = timestamp
+    
+    # Store timestamp for this measurement
+    history['timestamps'].append(timestamp)
     
     # Store values
     if cpu_val is not None:
@@ -288,30 +292,14 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
             cpu_values = history.get('cpu_values', [])
             mem_values = history.get('mem_values', [])
             
-            # CPU delta from start (total change)
-            if len(cpu_values) > 1:
-                cpu_delta = cpu_current_val - cpu_values[0]  # Change from first to current
-                cpu_delta_str = f"{cpu_delta:+.3f}" if cpu_delta != 0 else "0.000"
-            else:
-                cpu_delta_str = "N/A"
-            
-            # Memory delta from start (total change in MB)
-            if len(mem_values) > 1:
-                mem_delta = (mem_current_val - mem_values[0]) / (1024**2)
-                mem_delta_str = f"{mem_delta:+.0f}Mi" if mem_delta != 0 else "0Mi"
-            else:
-                mem_delta_str = "N/A"
-            
             # Calculate averages
             cpu_avg = sum(cpu_values) / len(cpu_values) if cpu_values else 0
             mem_avg = sum(mem_values) / len(mem_values) if mem_values else 0
             
             metric_row.update({
-                'CPU Δ': cpu_delta_str,
                 'CPU Avg': f"{cpu_avg:.3f}" if cpu_values else "N/A",
                 'CPU Min': f"{history.get('min_cpu', 0):.3f}" if history.get('min_cpu') is not None else "N/A",
                 'CPU Max': f"{history.get('max_cpu', 0):.3f}" if history.get('max_cpu') is not None else "N/A",
-                'Mem Δ': mem_delta_str,
                 'Mem Avg': f"{mem_avg/(1024**3):.2f}Gi" if mem_values else "N/A",
                 'Mem Min': f"{history.get('min_mem', 0)/(1024**3):.2f}Gi" if history.get('min_mem') is not None else "N/A",
                 'Mem Max': f"{history.get('max_mem', 0)/(1024**3):.2f}Gi" if history.get('max_mem') is not None else "N/A",
@@ -372,12 +360,6 @@ def display_metrics(metrics, table_format='grid'):
     # Apply coloring to percentage columns
     df['CPU %'] = df['CPU %'].apply(colorize_percentage)
     df['MEM %'] = df['MEM %'].apply(colorize_percentage)
-    
-    # Apply coloring to delta columns if they exist
-    if 'CPU Δ' in df.columns:
-        df['CPU Δ'] = df['CPU Δ'].apply(colorize_delta)
-    if 'Mem Δ' in df.columns:
-        df['Mem Δ'] = df['Mem Δ'].apply(colorize_delta)
     
     # Print with tabulate for beautiful tables
     print(f"\n{tabulate(df, headers='keys', tablefmt=table_format, showindex=False)}\n")
@@ -461,6 +443,33 @@ def save_stats_to_csv(metrics, output_file):
         df_metrics.to_csv(output_file, index=False)
         print(f"\n\033[92m✓ Metrics saved to:\033[0m {output_file}")
         output_files.append(output_file)
+    
+    # Save detailed time-series CPU/Memory values to separate CSV
+    if pod_history:
+        detailed_file = output_file.replace('.csv', '_detailed_values.csv')
+        detailed_data = []
+        
+        for container_key, history in sorted(pod_history.items()):
+            cpu_values = history.get('cpu_values', [])
+            mem_values = history.get('mem_values', [])
+            timestamps = history.get('timestamps', [])
+            
+            # Create a row for each measurement point
+            for i in range(len(timestamps)):
+                row = {
+                    'Container': container_key,
+                    'Timestamp': timestamps[i] if i < len(timestamps) else 'N/A',
+                    'CPU_Value': f"{cpu_values[i]:.3f}" if i < len(cpu_values) else 'N/A',
+                    'Memory_Value_Gi': f"{mem_values[i]/(1024**3):.3f}" if i < len(mem_values) else 'N/A',
+                    'Measurement_Number': i + 1
+                }
+                detailed_data.append(row)
+        
+        if detailed_data:
+            df_detailed = pd.DataFrame(detailed_data)
+            df_detailed.to_csv(detailed_file, index=False)
+            print(f"\033[92m✓ Detailed CPU/Memory values saved to:\033[0m {detailed_file}")
+            output_files.append(detailed_file)
     
     # Save lifecycle events to separate CSV
     if lifecycle_events:
