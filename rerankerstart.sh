@@ -4,7 +4,7 @@
 # aws s3 cp s3://unbxd-des/rerankerloadtest/ . --recursive --exclude "*" --include "*.jsonl"
 # watch -n 5 kubectl top pods -l algo=personalization
 # kubectl top pods -l'algo in (personalization,ranking)' --no-headers
-
+#kubectl top pod -lserving.knative.dev/service=ranking-f68e76d65c-predictor
 # Cleanup function to kill background processes
 cleanup() {
     echo ""
@@ -57,8 +57,7 @@ echo ""
 trap - SIGINT SIGTERM
 # Upload all outputs to S3
 source s3_upload.sh;
-run_s3_upload \
-    ~/mrf/loadtest/holiday-test-unbxd/.s3_upload_queue
+run_s3_upload ~/mrf/holiday-test-unbxd/.s3_upload_queue \
 
 cd ..
 
@@ -75,7 +74,6 @@ echo "$(pwd)/${time_ist}raw-data.json" >> .s3_upload_queue
 echo "$(pwd)/${time_ist}summary.json" >> .s3_upload_queue
 echo "📝 k6 output files added to upload queue"
 source s3_upload.sh;
-run_s3_upload \
-    ~/mrf/holiday-test-unbxd/.s3_upload_queue \
+run_s3_upload ~/mrf/loadtest/holiday-test-unbxd/.s3_upload_queue
 
 cd ..
