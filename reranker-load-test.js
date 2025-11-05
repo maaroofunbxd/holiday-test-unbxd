@@ -1,7 +1,10 @@
-//cd holiday-test-unbxd/;
-//FILES=$(find "$(pwd)/reranker-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
-// k6 run -e RPS=20 -e DURATION=60s -e HOST=http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com -e INPUT_FILES="$FILES" --out json=20251105-1250raw-data.json --summary-export=20251105-1250summary.json reranker-load-test.js ;
+// cd mrf;
+// cd holiday-test-unbxd/;
+// FILES=$(find "$(pwd)/reranker-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
+// k6 run -e RPS=20 -e DURATION=60s -e HOST=http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com -e INPUT_FILES="$FILES" --out json=20251105-1306raw-data.json --summary-export=20251105-1306summary.json reranker-load-test.js ;
 // cd ..
+// kubectl set env deploy/reranker-demo -nsearch --list
+//kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDIS_CACHE_TTL=80
 //aws s3 ls s3://unbxd-des/rerankerloadtest/
 //aws s3 cp s3://unbxd-des/rerankerloadtest/ . --recursive --exclude "*" --include "*.jsonl"
 //watch -n 5 kubectl top pods -l algo=personalization

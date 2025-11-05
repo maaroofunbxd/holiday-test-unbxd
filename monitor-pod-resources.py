@@ -1,11 +1,12 @@
-#cd mrf; 
-#python3 holiday-test-unbxd/monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embeddings)" --output 20251105-1250test.csv
-#cd ..
+cd mrf;
+cd holiday-test-unbxd;
+python3 monitor-pod-resources.py --stats 80 --watch 5  -l "algo in (ranking,embeddings)" --output 20251105-1305test.csv
 #!/usr/bin/env python3
 """
-Monitor Kubernetes pod resources showing current/limit as fractions
-Usage: python3 monitor-pod-resources.py [--watch INTERVAL]
+Monitor Kubernetes container resources showing current/limit as fractions (per-container tracking)
+Usage: python3 monitor-pod-resources.py [--watch INTERVAL] [-l LABEL_SELECTOR]
 Requires: pandas, tabulate (pip install pandas tabulate)
+Note: Only shows containers that have resource limits defined
 """
 
 import subprocess
@@ -69,7 +70,7 @@ def parse_resource(value):
 
 
 def get_pod_limits(label_selector):
-    """Get all pod resource limits/requests in one call"""
+    """Get all pod resource limits/requests with per-container breakdown"""
     cmd = [
         "kubectl", "get", "pods", 
         "-l", label_selector,
@@ -93,29 +94,40 @@ def get_pod_limits(label_selector):
             continue
         
         pod_name = parts[0]
-        cpu_req = parts[2] if len(parts) > 2 else 'N/A'
-        mem_req = parts[3] if len(parts) > 3 else 'N/A'
-        cpu_lim = parts[4] if len(parts) > 4 else 'N/A'
-        mem_lim = parts[5] if len(parts) > 5 else 'N/A'
+        containers_str = parts[1] if len(parts) > 1 else ''
+        cpu_req_str = parts[2] if len(parts) > 2 else 'N/A'
+        mem_req_str = parts[3] if len(parts) > 3 else 'N/A'
+        cpu_lim_str = parts[4] if len(parts) > 4 else 'N/A'
+        mem_lim_str = parts[5] if len(parts) > 5 else 'N/A'
         
-        limits_map[pod_name] = {
-            'cpu_request': cpu_req,
-            'cpu_limit': cpu_lim,
-            'mem_request': mem_req,
-            'mem_limit': mem_lim
-        }
+        # Split comma-separated values
+        containers = [c.strip() for c in containers_str.split(',') if c.strip()]
+        cpu_reqs = [c.strip() for c in cpu_req_str.split(',') if c.strip()] if cpu_req_str != 'N/A' else []
+        mem_reqs = [m.strip() for m in mem_req_str.split(',') if m.strip()] if mem_req_str != 'N/A' else []
+        cpu_lims = [c.strip() for c in cpu_lim_str.split(',') if c.strip()] if cpu_lim_str != 'N/A' else []
+        mem_lims = [m.strip() for m in mem_lim_str.split(',') if m.strip()] if mem_lim_str != 'N/A' else []
+        
+        # Store per-container limits
+        limits_map[pod_name] = {}
+        for i, container in enumerate(containers):
+            limits_map[pod_name][container] = {
+                'cpu_request': cpu_reqs[i] if i < len(cpu_reqs) else 'N/A',
+                'cpu_limit': cpu_lims[i] if i < len(cpu_lims) else 'N/A',
+                'mem_request': mem_reqs[i] if i < len(mem_reqs) else 'N/A',
+                'mem_limit': mem_lims[i] if i < len(mem_lims) else 'N/A',
+            }
     
     return limits_map
 
 
 def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False, is_new=True):
-    """Update historical tracking for a pod"""
+    """Update historical tracking for a container (pod_name can be 'pod/container' format)"""
     history = pod_history[pod_name]
     
     # Track first seen
     if history['first_seen'] is None:
         history['first_seen'] = timestamp
-        # Only log CREATED event if this is a genuinely new pod (not initial population)
+        # Only log CREATED event if this is a genuinely new container (not initial population)
         if is_new:
             lifecycle_events.append({
                 'time': timestamp,
@@ -123,7 +135,7 @@ def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False
                 'event': 'CREATED'
             })
             if show_changes:
-                print(f"\n\033[92m✓ POD CREATED:\033[0m {pod_name} at {timestamp}")
+                print(f"\n\033[92m✓ CONTAINER CREATED:\033[0m {pod_name} at {timestamp}")
     
     # Update last seen
     history['last_seen'] = timestamp
@@ -151,7 +163,7 @@ def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False
 
 
 def check_deleted_pods(current_pods, timestamp, show_changes=False):
-    """Check if any tracked pods are no longer present"""
+    """Check if any tracked containers are no longer present"""
     for pod_name in list(pod_history.keys()):
         if pod_name not in current_pods:
             history = pod_history[pod_name]
@@ -163,15 +175,15 @@ def check_deleted_pods(current_pods, timestamp, show_changes=False):
                 })
                 history['last_seen'] = 'DELETED'
                 if show_changes:
-                    print(f"\n\033[91m✗ POD DELETED:\033[0m {pod_name} at {timestamp}")
+                    print(f"\n\033[91m✗ CONTAINER DELETED:\033[0m {pod_name} at {timestamp}")
 
 
 def initialize_pod_history(limits_map, label_selector):
-    """Initialize pod_history with existing pods (avoids marking them as CREATED)"""
+    """Initialize pod_history with existing containers (avoids marking them as CREATED)"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
-    # Get current usage
-    cmd = ["kubectl", "top", "pods", "-l", label_selector, "--no-headers"]
+    # Get current usage per container
+    cmd = ["kubectl", "top", "pods", "-l", label_selector, "--containers", "--no-headers"]
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
@@ -182,24 +194,31 @@ def initialize_pod_history(limits_map, label_selector):
             continue
         
         parts = line.split()
+        if len(parts) < 4:
+            continue
+            
         pod_name = parts[0]
-        cpu_current = parts[1]
-        mem_current = parts[2]
+        container_name = parts[1]
+        cpu_current = parts[2]
+        mem_current = parts[3]
+        
+        # Create unique key for container tracking
+        container_key = f"{pod_name}/{container_name}"
         
         # Parse resource values
         cpu_current_val = parse_resource(cpu_current)
         mem_current_val = parse_resource(mem_current)
         
         # Initialize history without marking as CREATED
-        update_pod_history(pod_name, cpu_current_val, mem_current_val, timestamp, show_changes=False, is_new=False)
+        update_pod_history(container_key, cpu_current_val, mem_current_val, timestamp, show_changes=False, is_new=False)
 
 
 def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=False):
-    """Get current pod metrics and combine with limits"""
+    """Get current per-container metrics and combine with limits"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
-    # Get current usage
-    cmd = ["kubectl", "top", "pods", "-l", label_selector, "--no-headers"]
+    # Get current usage per container
+    cmd = ["kubectl", "top", "pods", "-l", label_selector, "--containers", "--no-headers"]
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
@@ -207,23 +226,35 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         return []
     
     metrics = []
-    current_pods = set()
+    current_containers = set()
     
     for line in result.stdout.strip().split('\n'):
         if not line:
             continue
         
         parts = line.split()
+        if len(parts) < 4:
+            continue
+            
         pod_name = parts[0]
-        cpu_current = parts[1]
-        mem_current = parts[2]
+        container_name = parts[1]
+        cpu_current = parts[2]
+        mem_current = parts[3]
         
-        current_pods.add(pod_name)
+        # Create unique key for container tracking
+        container_key = f"{pod_name}/{container_name}"
+        current_containers.add(container_key)
         
-        # Get limits from the map
-        limits = limits_map.get(pod_name, {})
-        cpu_limit = limits.get('cpu_limit', 'N/A')
-        mem_limit = limits.get('mem_limit', 'N/A')
+        # Get limits for this specific container
+        pod_limits = limits_map.get(pod_name, {})
+        container_limits = pod_limits.get(container_name, {})
+        
+        cpu_limit = container_limits.get('cpu_limit', 'N/A')
+        mem_limit = container_limits.get('mem_limit', 'N/A')
+        
+        # Only show containers that have limits defined (as per user request)
+        if cpu_limit == 'N/A' and mem_limit == 'N/A':
+            continue
         
         # Calculate fractions
         cpu_current_val = parse_resource(cpu_current)
@@ -233,10 +264,10 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         
         # Update history only if stats tracking is enabled
         if show_stats:
-            update_pod_history(pod_name, cpu_current_val, mem_current_val, timestamp, show_changes, is_new=True)
+            update_pod_history(container_key, cpu_current_val, mem_current_val, timestamp, show_changes, is_new=True)
         
         # Get historical data (only relevant if stats enabled)
-        history = pod_history.get(pod_name, {}) if show_stats else {}
+        history = pod_history.get(container_key, {}) if show_stats else {}
         
         cpu_fraction = f"{cpu_current_val:.2f}/{cpu_limit_val:.2f}" if cpu_limit_val else f"{cpu_current}/N/A"
         mem_fraction_gb = f"{mem_current_val/(1024**3):.2f}/{mem_limit_val/(1024**3):.2f}Gi" if mem_limit_val else f"{mem_current}/N/A"
@@ -247,6 +278,7 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         
         metric_row = {
             'POD': pod_name,
+            'CONTAINER': container_name,
             'CPU (current/limit)': cpu_fraction,
             'CPU %': cpu_percent,
             'MEMORY (current/limit)': mem_fraction_gb,
@@ -280,9 +312,9 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         
         metrics.append(metric_row)
     
-    # Check for deleted pods (only if stats tracking is enabled)
+    # Check for deleted containers (only if stats tracking is enabled)
     if show_stats:
-        check_deleted_pods(current_pods, timestamp, show_changes)
+        check_deleted_pods(current_containers, timestamp, show_changes)
     
     return metrics
 
@@ -325,7 +357,7 @@ def colorize_delta(val):
 def display_metrics(metrics, table_format='grid'):
     """Display metrics using pandas DataFrame with tabulate"""
     if not metrics:
-        print("No pods found.")
+        print("No containers found with resource limits defined.")
         return
     
     df = pd.DataFrame(metrics)
@@ -372,7 +404,7 @@ def display_lifecycle_events(limit=10):
     
     events_df['event'] = events_df['event'].apply(colorize_event)
     
-    print(tabulate(events_df, headers=['Time', 'Pod', 'Event'], tablefmt='simple', showindex=False))
+    print(tabulate(events_df, headers=['Time', 'Container', 'Event'], tablefmt='simple', showindex=False))
     print()
 
 
@@ -382,14 +414,14 @@ def display_summary():
         return
     
     print("\033[1m\033[96m📈 Summary Statistics:\033[0m")
-    print(f"Total pods tracked: {len(pod_history)}")
+    print(f"Total containers tracked: {len(pod_history)}")
     
-    active_pods = sum(1 for h in pod_history.values() if h['last_seen'] != 'DELETED')
-    deleted_pods = sum(1 for h in pod_history.values() if h['last_seen'] == 'DELETED')
+    active_containers = sum(1 for h in pod_history.values() if h['last_seen'] != 'DELETED')
+    deleted_containers = sum(1 for h in pod_history.values() if h['last_seen'] == 'DELETED')
     
-    print(f"Active pods: \033[92m{active_pods}\033[0m")
-    if deleted_pods > 0:
-        print(f"Deleted pods: \033[91m{deleted_pods}\033[0m")
+    print(f"Active containers: \033[92m{active_containers}\033[0m")
+    if deleted_containers > 0:
+        print(f"Deleted containers: \033[91m{deleted_containers}\033[0m")
     print()
 
 
@@ -398,7 +430,7 @@ def save_stats_to_csv(metrics, output_file):
     # Generate default filename if not provided
     if output_file is None:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        output_file = f"pod_stats_{timestamp}.csv"
+        output_file = f"container_stats_{timestamp}.csv"
     
     # Remove color codes from metrics for CSV
     clean_metrics = []
@@ -429,19 +461,19 @@ def save_stats_to_csv(metrics, output_file):
     # Save summary statistics
     summary_file = output_file.replace('.csv', '_summary.txt')
     with open(summary_file, 'w') as f:
-        f.write("Pod Resource Statistics Summary\n")
+        f.write("Container Resource Statistics Summary\n")
         f.write("=" * 50 + "\n\n")
-        f.write(f"Total pods tracked: {len(pod_history)}\n")
-        active_pods = sum(1 for h in pod_history.values() if h['last_seen'] != 'DELETED')
-        deleted_pods = sum(1 for h in pod_history.values() if h['last_seen'] == 'DELETED')
-        f.write(f"Active pods: {active_pods}\n")
-        f.write(f"Deleted pods: {deleted_pods}\n\n")
+        f.write(f"Total containers tracked: {len(pod_history)}\n")
+        active_containers = sum(1 for h in pod_history.values() if h['last_seen'] != 'DELETED')
+        deleted_containers = sum(1 for h in pod_history.values() if h['last_seen'] == 'DELETED')
+        f.write(f"Active containers: {active_containers}\n")
+        f.write(f"Deleted containers: {deleted_containers}\n\n")
         
-        # Per-pod details
-        f.write("Per-Pod Statistics:\n")
+        # Per-container details
+        f.write("Per-Container Statistics:\n")
         f.write("-" * 50 + "\n")
-        for pod_name, history in sorted(pod_history.items()):
-            f.write(f"\n{pod_name}:\n")
+        for container_key, history in sorted(pod_history.items()):
+            f.write(f"\n{container_key}:\n")
             f.write(f"  First seen: {history['first_seen']}\n")
             f.write(f"  Last seen: {history['last_seen']}\n")
             if history['min_cpu'] is not None:
@@ -453,7 +485,7 @@ def save_stats_to_csv(metrics, output_file):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Monitor pod resources with current/limit fractions')
+    parser = argparse.ArgumentParser(description='Monitor container resources with current/limit fractions (per-container tracking)')
     parser.add_argument('--watch', type=int, metavar='SECONDS', default=5, 
                         help='Watch mode with update interval (default: 5 seconds). Use --watch 0 for one-time check.')
     parser.add_argument('--label', '-l', type=str, default='algo in (personalization,ranking)',
@@ -466,9 +498,9 @@ def main():
     parser.add_argument('--events', '-e', type=int, default=10, metavar='N',
                         help='Number of recent lifecycle events to show when stats are enabled (default: 10, use 0 to hide, -1 for ALL events)')
     parser.add_argument('--show-changes', '-c', action='store_true',
-                        help='Show real-time change notifications as they happen (pod created/deleted)')
+                        help='Show real-time change notifications as they happen (container created/deleted)')
     parser.add_argument('--output', '-o', type=str, default=None, metavar='FILE',
-                        help='Output CSV file for stats (default: pod_stats_TIMESTAMP.csv). Only used with --stats.')
+                        help='Output CSV file for stats (default: container_stats_TIMESTAMP.csv). Only used with --stats.')
     args = parser.parse_args()
     
     # Stats mode: collect data for specified duration
@@ -480,11 +512,11 @@ def main():
             print(f"\033[1mReal-time change alerts:\033[0m ENABLED")
         print()
         
-        # Initialize pod_history with existing pods before monitoring
-        print("\033[2mInitializing with existing pods...\033[0m")
+        # Initialize pod_history with existing containers before monitoring
+        print("\033[2mInitializing with existing containers...\033[0m")
         limits_map = get_pod_limits(args.label)
         initialize_pod_history(limits_map, args.label)
-        print(f"\033[2mTracking {len(pod_history)} existing pod(s)\033[0m\n")
+        print(f"\033[2mTracking {len(pod_history)} existing container(s)\033[0m\n")
         
         start_time = time.time()
         iteration = 0
@@ -534,11 +566,11 @@ def main():
             print(f"\033[1mReal-time change alerts:\033[0m ENABLED")
         print()
         
-        # Initialize pod_history with existing pods before monitoring
-        print("\033[2mInitializing with existing pods...\033[0m")
+        # Initialize pod_history with existing containers before monitoring
+        print("\033[2mInitializing with existing containers...\033[0m")
         limits_map = get_pod_limits(args.label)
         initialize_pod_history(limits_map, args.label)
-        print(f"\033[2mTracking {len(pod_history)} existing pod(s)\033[0m\n")
+        print(f"\033[2mTracking {len(pod_history)} existing container(s)\033[0m\n")
         
         try:
             iteration = 0
