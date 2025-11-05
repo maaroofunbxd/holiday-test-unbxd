@@ -11,6 +11,7 @@ import sys
 import time
 import argparse
 import re
+import os
 from datetime import datetime
 from collections import defaultdict
 
@@ -426,8 +427,8 @@ def save_stats_to_csv(metrics, output_file):
     """Save metrics and lifecycle events to CSV files"""
     # Generate default filename if not provided
     if output_file is None:
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        output_file = f"container_stats_{timestamp}.csv"
+        timestamp = datetime.now().strftime('%Y%m%d-%H%M')
+        output_file = f"{timestamp}test.csv"
     
     # Remove color codes from metrics for CSV
     clean_metrics = []
@@ -442,11 +443,15 @@ def save_stats_to_csv(metrics, output_file):
                 clean_row[key] = value
         clean_metrics.append(clean_row)
     
+    # Collect all output files
+    output_files = []
+    
     # Save metrics to CSV
     if clean_metrics:
         df_metrics = pd.DataFrame(clean_metrics)
         df_metrics.to_csv(output_file, index=False)
         print(f"\n\033[92m✓ Metrics saved to:\033[0m {output_file}")
+        output_files.append(output_file)
     
     # Save lifecycle events to separate CSV
     if lifecycle_events:
@@ -454,6 +459,7 @@ def save_stats_to_csv(metrics, output_file):
         df_events = pd.DataFrame(lifecycle_events)
         df_events.to_csv(events_file, index=False)
         print(f"\033[92m✓ Lifecycle events saved to:\033[0m {events_file}")
+        output_files.append(events_file)
     
     # Save summary statistics
     summary_file = output_file.replace('.csv', '_summary.txt')
@@ -479,6 +485,20 @@ def save_stats_to_csv(metrics, output_file):
                 f.write(f"  Memory: min={history['min_mem']/(1024**3):.2f}Gi, max={history['max_mem']/(1024**3):.2f}Gi\n")
     
     print(f"\033[92m✓ Summary saved to:\033[0m {summary_file}\n")
+    output_files.append(summary_file)
+    
+    # Write output file paths to s3_upload_queue for bash script to read
+    queue_file = '.s3_upload_queue'
+    try:
+        with open(queue_file, 'a') as f:
+            for file_path in output_files:
+                # Write absolute path to avoid path issues
+                abs_path = os.path.abspath(file_path)
+                f.write(f"{abs_path}\n")
+        print(f"\033[96m📝 Output files added to upload queue for S3\033[0m")
+    except Exception as e:
+        print(f"\033[93m⚠ Warning: Could not write to upload queue: {e}\033[0m")
+        print(f"\033[93m  Files saved locally: {', '.join(output_files)}\033[0m")
 
 
 def main():

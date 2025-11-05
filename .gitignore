@@ -1,0 +1,12 @@
+# S3 upload queue files
+.s3_upload_queue
+
+# Test output files  
+*test.csv
+*test_summary.txt
+*test_events.csv
+*raw-data.json
+*summary.json
+*reranker-load-test.txt
+*reranker-load-test_summary.txt
+
