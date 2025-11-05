@@ -5,6 +5,29 @@
 # watch -n 5 kubectl top pods -l algo=personalization
 # kubectl top pods -l'algo in (personalization,ranking)' --no-headers
 
+# Cleanup function to kill background processes
+cleanup() {
+    echo ""
+    echo "🛑 Interrupt received, cleaning up..."
+    
+    # Kill monitor processes if they're still running
+    if [ ! -z "$MONITOR_PID1" ] && kill -0 $MONITOR_PID1 2>/dev/null; then
+        echo "  Stopping monitor 1 (PID: $MONITOR_PID1)..."
+        kill $MONITOR_PID1 2>/dev/null
+    fi
+    
+    if [ ! -z "$MONITOR_PID2" ] && kill -0 $MONITOR_PID2 2>/dev/null; then
+        echo "  Stopping monitor 2 (PID: $MONITOR_PID2)..."
+        kill $MONITOR_PID2 2>/dev/null
+    fi
+    
+    echo "✓ Cleanup complete"
+    exit 130
+}
+
+# Trap Ctrl+C (SIGINT) and other termination signals
+trap cleanup SIGINT SIGTERM
+
 #run from ai-prod-us-east-1-eks@ip-10-0-40-71
 cd ~/mrf; cd holiday-test-unbxd/;  
 git fetch origin && git rebase origin/main
@@ -24,10 +47,14 @@ MONITOR_PID2=$!
 
 # Wait for both monitors to complete
 echo "Waiting for both monitors to complete..."
+echo "  (Press Ctrl+C to stop and clean up background processes)"
 wait $MONITOR_PID1
 wait $MONITOR_PID2
 echo "✓ Both monitors completed"
 echo ""
+
+# Clear the trap after monitors complete
+trap - SIGINT SIGTERM
 # Upload all outputs to S3
 source s3_upload.sh;
 run_s3_upload \
