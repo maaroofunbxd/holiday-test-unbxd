@@ -5,11 +5,12 @@
 # Trap Ctrl+C (SIGINT) and other termination signals
 
 #run from ai-prod-us-east-1-eks@ip-10-0-40-71
-cd ~/mrf; cd holiday-test-unbxd/;  
+cd ~/mrf/holiday-test-unbxd/ || { echo "❌ Not in holiday-test-unbxd directory. Exiting."; exit 1; }
+
 source s3_upload.sh;
 trap cleanup SIGINT SIGTERM
 
-git fetch origin && git rebase origin/main
+#git fetch origin && git rebase origin/main
 rm -f .s3_upload_queue  # Clear any existing queue
 
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
@@ -39,6 +40,5 @@ echo "Uploading reranker-demo, ranking/embedding isvc resource metrics to S3"
 source s3_upload.sh;
 run_s3_upload ~/mrf/holiday-test-unbxd/.s3_upload_queue \
 
-cd ..
 
 
