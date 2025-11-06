@@ -1,9 +1,22 @@
 #!/usr/bin/env python3
 """
 Monitor Kubernetes container resources showing current/limit as fractions (per-container tracking)
-Usage: python3 monitor-pod-resources.py [--watch INTERVAL] [-l LABEL_SELECTOR]
+Usage: python3 monitor-pod-resources.py [--watch INTERVAL] [-l LABEL_SELECTOR] [--stats SECONDS]
 Requires: pandas, tabulate (pip install pandas tabulate)
 Note: Only shows containers that have resource limits defined
+
+Statistics Features (--stats mode):
+- Tracks avg and max CPU and Memory usage over time
+  * Avg: Typical usage - use for rightsizing requests
+  * Max: Peak usage - ensures limits are adequate
+- Volatility metric: Range (max-min) as % of pod limit
+  * Shows how much of your resource headroom is consumed by fluctuations
+  * Critical for capacity planning and avoiding throttling/OOM kills
+- Volatility indicators:
+  🔥 High volatility (>50% of limit) - Dangerous swings, risk of hitting limits
+  ⚠️  Medium volatility (25-50% of limit) - Moderate fluctuations, monitor closely
+  ✓  Stable (<25% of limit) - Consistent usage with good headroom
+- Color-coded display for easy identification of problematic containers
 """
 
 import subprocess
@@ -282,10 +295,13 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
             'POD': pod_name,
             'CONTAINER': container_name,
             'CPU (current/limit)': cpu_fraction,
-            'CPU %': cpu_percent,
             'MEMORY (current/limit)': mem_fraction_gb,
-            'MEM %': mem_percent,
         }
+        
+        # Add CPU % and MEM % only when stats mode is NOT enabled
+        if not show_stats:
+            metric_row['CPU %'] = cpu_percent
+            metric_row['MEM %'] = mem_percent
         
         # Add statistics if requested
         if show_stats and history:
@@ -296,13 +312,31 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
             cpu_avg = sum(cpu_values) / len(cpu_values) if cpu_values else 0
             mem_avg = sum(mem_values) / len(mem_values) if mem_values else 0
             
+            # Get min/max values
+            cpu_min = history.get('min_cpu', 0)
+            cpu_max_val = history.get('max_cpu', 0)
+            mem_min = history.get('min_mem', 0)
+            mem_max_val = history.get('max_mem', 0)
+            
+            # Calculate range (max - min)
+            cpu_range = cpu_max_val - cpu_min if cpu_max_val and cpu_min else 0
+            mem_range = mem_max_val - mem_min if mem_max_val and mem_min else 0
+            
+            # Volatility as % of limit
+            cpu_vol_limit_pct = (cpu_range / cpu_limit_val * 100) if cpu_limit_val and cpu_limit_val > 0 else 0
+            mem_vol_limit_pct = (mem_range / mem_limit_val * 100) if mem_limit_val and mem_limit_val > 0 else 0
+            
+            # Determine volatility indicators
+            cpu_indicator = "🔥" if cpu_vol_limit_pct > 50 else ("⚠️" if cpu_vol_limit_pct > 25 else "✓")
+            mem_indicator = "🔥" if mem_vol_limit_pct > 50 else ("⚠️" if mem_vol_limit_pct > 25 else "✓")
+            
             metric_row.update({
                 'CPU Avg': f"{cpu_avg:.3f}" if cpu_values else "N/A",
-                'CPU Min': f"{history.get('min_cpu', 0):.3f}" if history.get('min_cpu') is not None else "N/A",
-                'CPU Max': f"{history.get('max_cpu', 0):.3f}" if history.get('max_cpu') is not None else "N/A",
+                'CPU Max': f"{cpu_max_val:.3f}" if cpu_max_val is not None else "N/A",
+                'CPU Volatility': f"{cpu_indicator} {cpu_vol_limit_pct:.1f}%" if cpu_values and cpu_limit_val else "N/A",
                 'Mem Avg': f"{mem_avg/(1024**3):.2f}Gi" if mem_values else "N/A",
-                'Mem Min': f"{history.get('min_mem', 0)/(1024**3):.2f}Gi" if history.get('min_mem') is not None else "N/A",
-                'Mem Max': f"{history.get('max_mem', 0)/(1024**3):.2f}Gi" if history.get('max_mem') is not None else "N/A",
+                'Mem Max': f"{mem_max_val/(1024**3):.2f}Gi" if mem_max_val is not None else "N/A",
+                'Mem Volatility': f"{mem_indicator} {mem_vol_limit_pct:.1f}%" if mem_values and mem_limit_val else "N/A",
             })
         
         metrics.append(metric_row)
@@ -349,6 +383,24 @@ def colorize_delta(val):
         return val
 
 
+def colorize_volatility(val):
+    """Colorize volatility values based on indicator"""
+    if val == 'N/A':
+        return val
+    
+    try:
+        if '🔥' in val:
+            return f'\033[91m{val}\033[0m'  # Red for high volatility
+        elif '⚠️' in val:
+            return f'\033[93m{val}\033[0m'  # Yellow for medium volatility
+        elif '✓' in val:
+            return f'\033[92m{val}\033[0m'  # Green for stable
+        else:
+            return val
+    except:
+        return val
+
+
 def display_metrics(metrics, table_format='grid'):
     """Display metrics using pandas DataFrame with tabulate"""
     if not metrics:
@@ -357,9 +409,17 @@ def display_metrics(metrics, table_format='grid'):
     
     df = pd.DataFrame(metrics)
     
-    # Apply coloring to percentage columns
-    df['CPU %'] = df['CPU %'].apply(colorize_percentage)
-    df['MEM %'] = df['MEM %'].apply(colorize_percentage)
+    # Apply coloring to percentage columns (only in non-stats mode)
+    if 'CPU %' in df.columns:
+        df['CPU %'] = df['CPU %'].apply(colorize_percentage)
+    if 'MEM %' in df.columns:
+        df['MEM %'] = df['MEM %'].apply(colorize_percentage)
+    
+    # Apply coloring to volatility columns if they exist (only in stats mode)
+    if 'CPU Volatility' in df.columns:
+        df['CPU Volatility'] = df['CPU Volatility'].apply(colorize_volatility)
+    if 'Mem Volatility' in df.columns:
+        df['Mem Volatility'] = df['Mem Volatility'].apply(colorize_volatility)
     
     # Print with tabulate for beautiful tables
     print(f"\n{tabulate(df, headers='keys', tablefmt=table_format, showindex=False)}\n")
