@@ -127,9 +127,9 @@ cd /home/ai-ap-southeast-1-eks/mrf
 
 sh process_reranker_logs.sh
 
-alias monitorpods='cd ~/mrf/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && sudo ./monitorrerankerpods.sh'
+alias monitorpods='cd ~/mrf/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && sh ./monitorrerankerpods.sh'
 monitorpods
-alias k6-run='cd ~/mrf/loadtest/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && which k6 && sudo ./run-reranker-load.sh'
+alias k6-run='cd ~/mrf/loadtest/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && which k6 && sh ./run-reranker-load.sh'
 k6-run
 
 
