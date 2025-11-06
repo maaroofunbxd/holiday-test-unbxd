@@ -1,10 +1,33 @@
 #!/bin/bash
-# Configuration
-NAMESPACE="search"
-LABEL_SELECTOR="app=reranker"
-CHECK_INTERVAL=30  # Check every 30 seconds
-SIZE_THRESHOLD_MB=9.5  # Save when logs reach 9.5MB (before 10MB rotation)
-LOG_DIR="./reranker-logs"
+
+# Usage function
+usage() {
+    echo "Usage: $0 <label-selector> <log-directory> [namespace] [check-interval] [size-threshold-mb]"
+    echo ""
+    echo "Arguments:"
+    echo "  label-selector     - Kubernetes label selector (e.g., app=reranker)"
+    echo "  log-directory      - Directory to save logs (e.g., ./reranker-logs)"
+    echo "  namespace          - Kubernetes namespace (default: search)"
+    echo "  check-interval     - Check interval in seconds (default: 30)"
+    echo "  size-threshold-mb  - Size threshold in MB to trigger save (default: 9.5)"
+    echo ""
+    echo "Example:"
+    echo "  $0 app=reranker ./reranker-logs"
+    echo "  $0 app=hodor ./hodor-logs search 30 9.5"
+    exit 1
+}
+
+# Check required arguments
+if [ $# -lt 2 ]; then
+    usage
+fi
+
+# Configuration from arguments
+LABEL_SELECTOR="$1"
+LOG_DIR="$2"
+NAMESPACE="${3:-search}"
+CHECK_INTERVAL="${4:-30}"  # Check every 30 seconds by default
+SIZE_THRESHOLD_MB="${5:-9.5}"  # Save when logs reach 9.5MB (before 10MB rotation)
 
 # Colors for output
 RED='\033[0;31m'
@@ -15,7 +38,7 @@ NC='\033[0m' # No Color
 # Create log directory
 mkdir -p "$LOG_DIR"
 
-echo "Starting log monitor for app=reranker pods in namespace: $NAMESPACE"
+echo "Starting log monitor for pods with label '$LABEL_SELECTOR' in namespace: $NAMESPACE"
 echo "Logs will be saved to: $LOG_DIR"
 echo "Check interval: ${CHECK_INTERVAL}s"
 echo "Size threshold: ${SIZE_THRESHOLD_MB}MB"
