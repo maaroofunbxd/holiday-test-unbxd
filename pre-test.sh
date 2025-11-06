@@ -119,3 +119,14 @@ kubectl rollout status deployment reranker-demo -nsearch
 kubectl rollout history deployment reranker-demo -nsearch
 # kubectl rollout undo deployment reranker-demo -nsearch
 # kubectl rollout undo deployment reranker-demo -nsearch --to-revision=1
+
+#TO GET the prod logs
+kubectl set env deployment/reranker -nsearch --containers="goreranker" LOG_LEVEL=debug
+kubectl annotate deploy reranker -n search \
+  kubernetes.io/change-cause="goreranker debugging"
+
+kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL=DEBUG
+kubectl annotate deploy reranker -n search \
+  kubernetes.io/change-cause="pyreranker debugging"
+kubectl rollout status deployment reranker -nsearch
+kubectl rollout history deployment reranker-demo -nsearch
