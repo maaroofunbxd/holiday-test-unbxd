@@ -1,7 +1,3 @@
-# kubectl set env deploy/reranker-demo -nsearch --list
-# kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDIS_CACHE_TTL=80
-# aws s3 ls s3://unbxd-des/rerankerloadtest/
-# aws s3 cp s3://unbxd-des/rerankerloadtest/ . --recursive --exclude "*" --include "*.jsonl"
 # watch -n 5 kubectl top pods -l algo=personalization
 # kubectl top pods -l'algo in (personalization,ranking)' --no-headers
 #kubectl top pod -lserving.knative.dev/service=ranking-f68e76d65c-predictor
