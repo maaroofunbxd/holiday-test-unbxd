@@ -1,7 +1,4 @@
 #!/bin/bash
-#kubectl set env deployment/reranker --containers="pyreranker" LOG_LEVEL=ERROR -nsearch
-#kubectl set env deployment/reranker --containers="goreranker" LOG_LEVEL=error -nsearch
-#for file in ../reranker-monitoring/reranker-logs/reranker-*.log; do python3 extract_requests.py -i "$file" -o "../reranker-monitoring/reranker-logs/requests_$(basename "$file" .log).jsonl"; done
 # Configuration
 NAMESPACE="search"
 LABEL_SELECTOR="app=reranker"
