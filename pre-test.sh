@@ -7,16 +7,6 @@
 # https://docs.google.com/spreadsheets/d/1HwN-W9mj1CcGNLGZNTpzbyFk-dG8ZJoOBkCnn54sWy8/edit?gid=0#gid=0
 # https://app.datadoghq.com/dashboard/dbd-x57-fig/reranker?fromUser=true&fullscreen_end_ts=1762159766854&fullscreen_paused=false&fullscreen_refresh_mode=sliding&fullscreen_section=overview&fullscreen_start_ts=1761554966854&fullscreen_widget=8411901009295312&refresh_mode=sliding&tpl_var_region%5B0%5D=us-east-1&from_ts=1762073314258&to_ts=1762159714258&live=true
 
-kubectl set env deployment/reranker --containers="pyreranker" LOG_LEVEL=ERROR -nsearch
-kubectl set env deployment/reranker --containers="goreranker" LOG_LEVEL=error -nsearch
-#./monitor-reranker-logs.sh
-./reranker-log-daemon.sh start
-for file in ../reranker-monitoring/reranker-logs/reranker-*.log; do python3 extract_requests.py -i "$file" -o "../reranker-monitoring/reranker-logs/requests_$(basename "$file" .log).jsonl"; done
-
-
-# kubectl set env deploy/reranker-demo -nsearch --list
-# aws s3 ls s3://unbxd-des/rerankerloadtest/
-# aws s3 cp s3://unbxd-des/rerankerloadtest/ . --recursive --exclude "*" --include "*.jsonl"
 
 kubectl get configmap  reranker-envoy -nsearch -oyaml > prodenvoyconfigmap.yaml
 kubectl get configmap  reranker-demo-envoy -nsearch -oyaml > olddemoconfigmap.yaml
@@ -130,3 +120,14 @@ kubectl annotate deploy reranker -n search \
   kubernetes.io/change-cause="pyreranker debugging"
 kubectl rollout status deployment reranker -nsearch
 kubectl rollout history deployment reranker -nsearch
+
+#kubectl set env deploy/reranker-demo -nsearch --list
+kubectl set env deployment/reranker --containers="pyreranker" LOG_LEVEL=ERROR -nsearch
+kubectl set env deployment/reranker --containers="goreranker" LOG_LEVEL=error -nsearch
+#./monitor-reranker-logs.sh
+sudo ./reranker-log-daemon.sh start
+for file in reranker-logs/reranker-*.log; do python3 extract_requests.py -i "$file" -o "reranker-logs/requests_$(basename "$file" .log).jsonl"; done
+
+# aws s3 ls s3://unbxd-des/rerankerloadtest/
+# aws s3 cp . s3://unbxd-des/rerankerloadtest/gcpuslogs/ --recursive --exclude "*" --include "*.jsonl"
+# aws s3 cp s3://unbxd-des/rerankerloadtest/gcpuslogs/ . --recursive --exclude "*" --include "*.jsonl"
