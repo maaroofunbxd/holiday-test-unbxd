@@ -1,12 +1,5 @@
 
 # Change to the project directory
-cd 'holiday-test-unbxd/'
-
-# Monitor reranker logs (commented out)
-#./monitor-reranker-logs.sh
-
-# Start the reranker log daemon with sudo
-sudo './reranker-log-daemon.sh' 'start'
 
 # Process all reranker log files
 # find 'reranker-logs' '-name' 'reranker-*.log' '-type' 'f' >>= foreach

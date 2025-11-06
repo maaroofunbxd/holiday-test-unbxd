@@ -1,3 +1,8 @@
+cd /home/ai-ap-southeast-1-eks/mrf
+alias logfetchstart='cd holiday-test-unbxd/ && sudo ./reranker-log-daemon.sh start'
+logfetchstart
+
+
 # last years (2024) reranker go use-1d showing much larger RPS for use-1d than now : max -> (20,0.1)
 # reranker2024:
 #     go:
@@ -6,6 +11,7 @@
             
 # https://docs.google.com/spreadsheets/d/1HwN-W9mj1CcGNLGZNTpzbyFk-dG8ZJoOBkCnn54sWy8/edit?gid=0#gid=0
 # https://app.datadoghq.com/dashboard/dbd-x57-fig/reranker?fromUser=true&fullscreen_end_ts=1762159766854&fullscreen_paused=false&fullscreen_refresh_mode=sliding&fullscreen_section=overview&fullscreen_start_ts=1761554966854&fullscreen_widget=8411901009295312&refresh_mode=sliding&tpl_var_region%5B0%5D=us-east-1&from_ts=1762073314258&to_ts=1762159714258&live=true
+
 
 cd /home/ai-ap-southeast-1-eks/mrf
 kubectl get configmap  reranker-demo-envoy -nsearch -oyaml > olddemoconfigmap.yaml
@@ -123,9 +129,6 @@ kubectl annotate deploy reranker -n search \
 kubectl rollout status deployment reranker -nsearch
 kubectl rollout history deployment reranker -nsearch
 
-cd /home/ai-ap-southeast-1-eks/mrf
-
-sh process_reranker_logs.sh
 
 alias monitorpods='cd ~/mrf/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && ./monitorrerankerpods.sh'
 monitorpods
