@@ -129,4 +129,4 @@ kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL
 kubectl annotate deploy reranker -n search \
   kubernetes.io/change-cause="pyreranker debugging"
 kubectl rollout status deployment reranker -nsearch
-kubectl rollout history deployment reranker-demo -nsearch
+kubectl rollout history deployment reranker -nsearch
