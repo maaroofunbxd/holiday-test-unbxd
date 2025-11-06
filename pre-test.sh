@@ -128,3 +128,4 @@ kubectl rollout history deployment reranker -nsearch
 cd /home/ai-ap-southeast-1-eks/mrf
 
 sh process_reranker_logs.sh
+alias holiday-setup='cd ~/mrf/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && bash'

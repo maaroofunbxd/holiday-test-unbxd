@@ -5,7 +5,6 @@
 # Trap Ctrl+C (SIGINT) and other termination signals
 
 #run from ai-prod-us-east-1-eks@ip-10-0-40-71
-cd ~/mrf/holiday-test-unbxd/ || { echo "❌ Not in holiday-test-unbxd directory. Exiting."; exit 1; }
 
 source s3_upload.sh;
 trap cleanup SIGINT SIGTERM
@@ -38,7 +37,7 @@ trap - SIGINT SIGTERM
 # Upload all outputs to S3
 echo "Uploading reranker-demo, ranking/embedding isvc resource metrics to S3"
 source s3_upload.sh;
-run_s3_upload ~/mrf/holiday-test-unbxd/.s3_upload_queue \
+run_s3_upload .s3_upload_queue
 
 
 
