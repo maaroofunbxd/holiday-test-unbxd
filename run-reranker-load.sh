@@ -1,5 +1,3 @@
-#!bin/bash
-
 #run from ubuntu@ip-10-0-1-231
 FILES=$(find "$(pwd)/reranker-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
 #20251103-1810
