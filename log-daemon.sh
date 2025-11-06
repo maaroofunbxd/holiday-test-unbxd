@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Daemon wrapper for monitor-reranker-logs.sh
+# Daemon wrapper for monitor-logs.sh
 
 # Usage function
 usage() {
@@ -32,7 +32,7 @@ usage() {
 }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MONITOR_SCRIPT="$SCRIPT_DIR/monitor-reranker-logs.sh"
+MONITOR_SCRIPT="$SCRIPT_DIR/monitor-logs.sh"
 
 # Function to generate PID and LOG file names based on label
 get_filenames() {

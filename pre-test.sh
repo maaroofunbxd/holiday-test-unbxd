@@ -1,5 +1,5 @@
 cd /home/ai-ap-southeast-1-eks/mrf
-alias logfetchstart='cd holiday-test-unbxd/ && sudo ./reranker-log-daemon.sh start'
+alias logfetchstart='cd holiday-test-unbxd/ && sudo ./log-daemon.sh start app=reranker ./reranker-logs'
 logfetchstart
 
 
