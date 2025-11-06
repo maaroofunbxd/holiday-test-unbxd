@@ -17,8 +17,6 @@ kubectl patch configmap reranker-demo-envoy -nsearch --type merge -p "$(cat tmp.
 # EOF
 #kubectl apply -f democonfigmap.yaml
 
-#kubectl set env deploy/reranker-demo -nsearch --list
-
 kubectl get deploy reranker-demo -nsearch -oyaml > demo.yaml
 kubectl get deploy reranker -nsearch -oyaml > prod.yaml
 #in local
@@ -128,4 +126,12 @@ kubectl rollout history deployment reranker -nsearch
 cd /home/ai-ap-southeast-1-eks/mrf
 
 sh process_reranker_logs.sh
-alias holiday-setup='cd ~/mrf/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && bash'
+
+alias holiday-setup='cd ~/mrf/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && monitorrerankerpods.sh'
+holiday-setup
+alias holiday-k6-setup='cd ~/mrf/loadtest/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && which k6 && run-reranker-load.sh'
+holiday-k6-setup
+
+
+#before load test
+kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
