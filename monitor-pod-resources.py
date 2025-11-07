@@ -135,22 +135,14 @@ def get_pod_limits(label_selector, namespace=None):
     return limits_map
 
 
-def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False, is_new=True):
-    """Update historical tracking for a container (pod_name can be 'pod/container' format)"""
+def update_pod_history(pod_name, cpu_val, mem_val, timestamp):
+    """Update historical tracking for a container (pod_name can be 'pod/container' format)
+    Returns the history dict for the container"""
     history = pod_history[pod_name]
     
     # Track first seen
     if history['first_seen'] is None:
         history['first_seen'] = timestamp
-        # Only log CREATED event if this is a genuinely new container (not initial population)
-        if is_new:
-            lifecycle_events.append({
-                'time': timestamp,
-                'pod': pod_name,
-                'event': 'CREATED'
-            })
-            if show_changes:
-                print(f"\n\033[92m✓ CONTAINER CREATED:\033[0m {pod_name} at {timestamp}")
     
     # Update last seen
     history['last_seen'] = timestamp
@@ -178,10 +170,13 @@ def update_pod_history(pod_name, cpu_val, mem_val, timestamp, show_changes=False
             history['min_mem'] = mem_val
         if history['max_mem'] is None or mem_val > history['max_mem']:
             history['max_mem'] = mem_val
+    
+    return history
 
 
-def check_deleted_pods(current_pods, timestamp, show_changes=False):
-    """Check if any tracked containers are no longer present"""
+def check_deleted_pods(current_pods, timestamp):
+    """Check if any tracked containers are no longer present and return list of deleted pods"""
+    deleted_pods = []
     for pod_name in list(pod_history.keys()):
         if pod_name not in current_pods:
             history = pod_history[pod_name]
@@ -192,8 +187,8 @@ def check_deleted_pods(current_pods, timestamp, show_changes=False):
                     'event': 'DELETED'
                 })
                 history['last_seen'] = 'DELETED'
-                if show_changes:
-                    print(f"\n\033[91m✗ CONTAINER DELETED:\033[0m {pod_name} at {timestamp}")
+                deleted_pods.append(pod_name)
+    return deleted_pods
 
 
 def initialize_pod_history(limits_map, label_selector, namespace=None):
@@ -231,10 +226,10 @@ def initialize_pod_history(limits_map, label_selector, namespace=None):
         mem_current_val = parse_resource(mem_current)
         
         # Initialize history without marking as CREATED
-        update_pod_history(container_key, cpu_current_val, mem_current_val, timestamp, show_changes=False, is_new=False)
+        update_pod_history(container_key, cpu_current_val, mem_current_val, timestamp)
 
 
-def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=False, namespace=None):
+def get_pod_metrics(limits_map, label_selector, show_stats=False, namespace=None):
     """Get current per-container metrics and combine with limits"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
@@ -247,10 +242,11 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
     
     if result.returncode != 0:
         print(f"Error running kubectl top: {result.stderr}")
-        return []
+        return [], set(), timestamp
     
     metrics = []
     current_containers = set()
+    newly_created_containers = []
     
     for line in result.stdout.strip().split('\n'):
         if not line:
@@ -286,12 +282,20 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         mem_current_val = parse_resource(mem_current)
         mem_limit_val = parse_resource(mem_limit)
         
-        # Update history only if stats tracking is enabled
+        # Update history and track lifecycle events if stats tracking is enabled
         if show_stats:
-            update_pod_history(container_key, cpu_current_val, mem_current_val, timestamp, show_changes, is_new=True)
-        
-        # Get historical data (only relevant if stats enabled)
-        history = pod_history.get(container_key, {}) if show_stats else {}
+            history = update_pod_history(container_key, cpu_current_val, mem_current_val, timestamp)
+            
+            # Check if this is a newly created container (first_seen equals current timestamp)
+            if history['first_seen'] == timestamp and len(history['timestamps']) == 1:
+                lifecycle_events.append({
+                    'time': timestamp,
+                    'pod': container_key,
+                    'event': 'CREATED'
+                })
+                newly_created_containers.append(container_key)
+        else:
+            history = {}
         
         cpu_fraction = f"{cpu_current_val:.2f}/{cpu_limit_val:.2f}" if cpu_limit_val else f"{cpu_current}/N/A"
         mem_fraction_gb = f"{mem_current_val/(1024**3):.2f}/{mem_limit_val/(1024**3):.2f}Gi" if mem_limit_val else f"{mem_current}/N/A"
@@ -351,11 +355,7 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         
         metrics.append(metric_row)
     
-    # Check for deleted containers (only if stats tracking is enabled)
-    if show_stats:
-        check_deleted_pods(current_containers, timestamp, show_changes)
-    
-    return metrics
+    return metrics, current_containers, newly_created_containers, timestamp
 
 
 def colorize_percentage(val):
@@ -663,7 +663,18 @@ def main():
                 
                 # Fetch and process metrics with stats tracking (silent mode)
                 limits_map = get_pod_limits(args.label, args.namespace)
-                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes, namespace=args.namespace)
+                metrics, current_containers, newly_created, timestamp = get_pod_metrics(limits_map, args.label, show_stats=True, namespace=args.namespace)
+                
+                # Show notifications for lifecycle changes if requested
+                if args.show_changes:
+                    for pod_name in newly_created:
+                        print(f"\n\033[92m✓ CONTAINER CREATED:\033[0m {pod_name} at {timestamp}")
+                
+                # Check for deleted pods and show notifications if requested
+                deleted_pods = check_deleted_pods(current_containers, timestamp)
+                if args.show_changes and deleted_pods:
+                    for pod_name in deleted_pods:
+                        print(f"\n\033[91m✗ CONTAINER DELETED:\033[0m {pod_name} at {timestamp}")
                 
                 iteration += 1
                 time.sleep(args.watch)
@@ -680,7 +691,7 @@ def main():
         
         # Show final table with stats
         limits_map = get_pod_limits(args.label, args.namespace)
-        metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False, namespace=args.namespace)
+        metrics, _, _, _ = get_pod_metrics(limits_map, args.label, show_stats=True, namespace=args.namespace)
         display_metrics(metrics, args.format)
         
         # Show lifecycle events
@@ -726,7 +737,18 @@ def main():
                 
                 # Fetch and process metrics with stats tracking
                 limits_map = get_pod_limits(args.label, args.namespace)
-                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes, namespace=args.namespace)
+                metrics, current_containers, newly_created, timestamp = get_pod_metrics(limits_map, args.label, show_stats=True, namespace=args.namespace)
+                
+                # Show notifications for lifecycle changes if requested
+                if args.show_changes:
+                    for pod_name in newly_created:
+                        print(f"\n\033[92m✓ CONTAINER CREATED:\033[0m {pod_name} at {timestamp}")
+                
+                # Check for deleted pods and show notifications if requested
+                deleted_pods = check_deleted_pods(current_containers, timestamp)
+                if args.show_changes and deleted_pods:
+                    for pod_name in deleted_pods:
+                        print(f"\n\033[91m✗ CONTAINER DELETED:\033[0m {pod_name} at {timestamp}")
                 
                 # Show summary
                 display_summary()
@@ -753,7 +775,7 @@ def main():
             
             # Show final table with stats
             limits_map = get_pod_limits(args.label, args.namespace)
-            metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False, namespace=args.namespace)
+            metrics, _, _, _ = get_pod_metrics(limits_map, args.label, show_stats=True, namespace=args.namespace)
             display_metrics(metrics, args.format)
             
             # Show lifecycle events
@@ -784,7 +806,7 @@ def main():
                 
                 # Fetch limits before each iteration (no stats tracking)
                 limits_map = get_pod_limits(args.label, args.namespace)
-                metrics = get_pod_metrics(limits_map, args.label, show_stats=False, namespace=args.namespace)
+                metrics, _, _, _ = get_pod_metrics(limits_map, args.label, show_stats=False, namespace=args.namespace)
                 display_metrics(metrics, args.format)
                 
                 iteration += 1
@@ -798,7 +820,7 @@ def main():
         if not limits_map:
             print("\033[91m✗ No pods found matching the label selector. Exiting.\033[0m")
             sys.exit(1)
-        metrics = get_pod_metrics(limits_map, args.label, show_stats=False, namespace=args.namespace)
+        metrics, _, _, _ = get_pod_metrics(limits_map, args.label, show_stats=False, namespace=args.namespace)
         display_metrics(metrics, args.format)
 
 
