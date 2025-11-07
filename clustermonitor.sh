@@ -7,4 +7,5 @@ monitorpods() {
     ./monitorrerankerpods.sh $STATS_DURATION
 }
 
+kubectl annotate deployment ranking-ec7d9fa992-predictor-00327-deployment -nsearch autoscaling.knative.dev/scale-down-delay=0m --overwrite
 monitorpods 200;
