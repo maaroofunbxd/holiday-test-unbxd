@@ -1,7 +1,8 @@
 #!/bin/bash
-# Usage: ./monitorrerankerpods.sh <STATS_DURATION>
-# Example: ./monitorrerankerpods.sh 80
+# Usage: ./monitorrerankerpods.sh <STATS_DURATION> <NAMESPACE>
+# Example: ./monitorrerankerpods.sh 80 default
 # STATS_DURATION: How long to collect stats (in seconds)
+# NAMESPACE: Kubernetes namespace to monitor (optional)
 
 # watch -n 5 kubectl top pods -l algo=personalization
 # kubectl top pods -l'algo in (personalization,ranking)' --no-headers
@@ -20,6 +21,15 @@ else
     echo "Using stats duration: ${STATS_DURATION}s"
 fi
 
+# Check if namespace is provided
+if [ $# -ge 2 ]; then
+    NAMESPACE=$2
+    echo "Using namespace: ${NAMESPACE}"
+else
+    echo "No namespace provided, using default: search"
+    NAMESPACE="search"
+fi
+
 source s3_upload.sh;
 trap cleanup SIGINT SIGTERM
 
@@ -31,11 +41,11 @@ time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
 # Run both monitor scripts simultaneously in background
 echo "📊 Starting parallel monitoring..."
 echo "  - Monitoring reranker-demo pods..."
-python3 monitor-pod-resources.py --stats $STATS_DURATION --watch 5  -l "app in (reranker-demo)" --output ${time_ist}reranker-demo.csv &
+python3 monitor-pod-resources.py --stats $STATS_DURATION --watch 5 -l "app in (reranker-demo)" -n $NAMESPACE --output ${time_ist}reranker-demo.csv &
 MONITOR_PID1=$!
 
 echo "  - Monitoring ranking/embedding pods..."
-python3 monitor-pod-resources.py --stats $STATS_DURATION --watch 5  -l "algo in (ranking,embeddings)" --output ${time_ist}ranking-embedding.csv &
+python3 monitor-pod-resources.py --stats $STATS_DURATION --watch 5 -l "algo in (ranking,embeddings)" -n $NAMESPACE --output ${time_ist}ranking-embedding.csv &
 MONITOR_PID2=$!
 
 # Wait for both monitors to complete

@@ -81,7 +81,7 @@ def parse_resource(value):
     return float(value)
 
 
-def get_pod_limits(label_selector):
+def get_pod_limits(label_selector, namespace=None):
     """Get all pod resource limits/requests with per-container breakdown"""
     cmd = [
         "kubectl", "get", "pods", 
@@ -89,6 +89,9 @@ def get_pod_limits(label_selector):
         "-o", "custom-columns=POD:.metadata.name,CONTAINER:.spec.containers[*].name,CPU_REQ:.spec.containers[*].resources.requests.cpu,MEM_REQ:.spec.containers[*].resources.requests.memory,CPU_LIM:.spec.containers[*].resources.limits.cpu,MEM_LIM:.spec.containers[*].resources.limits.memory",
         "--no-headers"
     ]
+    
+    if namespace:
+        cmd.extend(["-n", namespace])
     
     result = subprocess.run(cmd, capture_output=True, text=True)
     
@@ -193,12 +196,15 @@ def check_deleted_pods(current_pods, timestamp, show_changes=False):
                     print(f"\n\033[91m✗ CONTAINER DELETED:\033[0m {pod_name} at {timestamp}")
 
 
-def initialize_pod_history(limits_map, label_selector):
+def initialize_pod_history(limits_map, label_selector, namespace=None):
     """Initialize pod_history with existing containers (avoids marking them as CREATED)"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     # Get current usage per container
     cmd = ["kubectl", "top", "pods", "-l", label_selector, "--containers", "--no-headers"]
+    
+    if namespace:
+        cmd.extend(["-n", namespace])
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
@@ -228,12 +234,15 @@ def initialize_pod_history(limits_map, label_selector):
         update_pod_history(container_key, cpu_current_val, mem_current_val, timestamp, show_changes=False, is_new=False)
 
 
-def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=False):
+def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=False, namespace=None):
     """Get current per-container metrics and combine with limits"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     # Get current usage per container
     cmd = ["kubectl", "top", "pods", "-l", label_selector, "--containers", "--no-headers"]
+    
+    if namespace:
+        cmd.extend(["-n", namespace])
     result = subprocess.run(cmd, capture_output=True, text=True)
     
     if result.returncode != 0:
@@ -615,12 +624,16 @@ def main():
                         help='Show real-time change notifications as they happen (container created/deleted)')
     parser.add_argument('--output', '-o', type=str, default=None, metavar='FILE',
                         help='Output CSV file for stats (default: container_stats_TIMESTAMP.csv). Only used with --stats.')
+    parser.add_argument('--namespace', '-n', type=str, default=None, metavar='NAMESPACE',
+                        help='Kubernetes namespace to monitor (default: current namespace)')
     args = parser.parse_args()
     
     # Stats mode: collect data for specified duration
     if args.stats > 0:
         print(f"\033[1m\033[96m📊 Collecting statistics for {args.stats} seconds...\033[0m \033[2m(Ctrl+C to stop early)\033[0m")
         print(f"\033[1mLabel:\033[0m {args.label}")
+        if args.namespace:
+            print(f"\033[1mNamespace:\033[0m {args.namespace}")
         print(f"\033[1mPolling interval:\033[0m {args.watch} seconds")
         if args.show_changes:
             print(f"\033[1mReal-time change alerts:\033[0m ENABLED")
@@ -628,8 +641,14 @@ def main():
         
         # Initialize pod_history with existing containers before monitoring
         print("\033[2mInitializing with existing containers...\033[0m")
-        limits_map = get_pod_limits(args.label)
-        initialize_pod_history(limits_map, args.label)
+        limits_map = get_pod_limits(args.label, args.namespace)
+        
+        # Exit if no pods found
+        if not limits_map:
+            print("\033[91m✗ No pods found matching the label selector. Exiting.\033[0m")
+            sys.exit(1)
+        
+        initialize_pod_history(limits_map, args.label, args.namespace)
         print(f"\033[2mTracking {len(pod_history)} existing container(s)\033[0m\n")
         
         start_time = time.time()
@@ -643,8 +662,8 @@ def main():
                 print(f"\r\033[KIteration {iteration + 1} | Elapsed: {elapsed}s | Remaining: {remaining}s", end='', flush=True)
                 
                 # Fetch and process metrics with stats tracking (silent mode)
-                limits_map = get_pod_limits(args.label)
-                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes)
+                limits_map = get_pod_limits(args.label, args.namespace)
+                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes, namespace=args.namespace)
                 
                 iteration += 1
                 time.sleep(args.watch)
@@ -660,8 +679,8 @@ def main():
         display_summary()
         
         # Show final table with stats
-        limits_map = get_pod_limits(args.label)
-        metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False)
+        limits_map = get_pod_limits(args.label, args.namespace)
+        metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False, namespace=args.namespace)
         display_metrics(metrics, args.format)
         
         # Show lifecycle events
@@ -675,6 +694,8 @@ def main():
     elif args.stats == -1:
         print(f"\033[1m\033[96m📊 Continuous statistics tracking...\033[0m \033[2m(Ctrl+C to stop)\033[0m")
         print(f"\033[1mLabel:\033[0m {args.label}")
+        if args.namespace:
+            print(f"\033[1mNamespace:\033[0m {args.namespace}")
         print(f"\033[1mPolling interval:\033[0m {args.watch} seconds")
         if args.show_changes:
             print(f"\033[1mReal-time change alerts:\033[0m ENABLED")
@@ -682,8 +703,14 @@ def main():
         
         # Initialize pod_history with existing containers before monitoring
         print("\033[2mInitializing with existing containers...\033[0m")
-        limits_map = get_pod_limits(args.label)
-        initialize_pod_history(limits_map, args.label)
+        limits_map = get_pod_limits(args.label, args.namespace)
+        
+        # Exit if no pods found
+        if not limits_map:
+            print("\033[91m✗ No pods found matching the label selector. Exiting.\033[0m")
+            sys.exit(1)
+        
+        initialize_pod_history(limits_map, args.label, args.namespace)
         print(f"\033[2mTracking {len(pod_history)} existing container(s)\033[0m\n")
         
         try:
@@ -693,11 +720,13 @@ def main():
                 
                 print(f"\033[1m\033[96mContinuous Statistics Tracking\033[0m \033[2m(Ctrl+C to stop and save)\033[0m")
                 print(f"\033[1mLabel:\033[0m {args.label}")
+                if args.namespace:
+                    print(f"\033[1mNamespace:\033[0m {args.namespace}")
                 print(f"\033[1mIteration:\033[0m {iteration + 1}")
                 
                 # Fetch and process metrics with stats tracking
-                limits_map = get_pod_limits(args.label)
-                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes)
+                limits_map = get_pod_limits(args.label, args.namespace)
+                metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=args.show_changes, namespace=args.namespace)
                 
                 # Show summary
                 display_summary()
@@ -723,8 +752,8 @@ def main():
             display_summary()
             
             # Show final table with stats
-            limits_map = get_pod_limits(args.label)
-            metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False)
+            limits_map = get_pod_limits(args.label, args.namespace)
+            metrics = get_pod_metrics(limits_map, args.label, show_stats=True, show_changes=False, namespace=args.namespace)
             display_metrics(metrics, args.format)
             
             # Show lifecycle events
@@ -736,6 +765,12 @@ def main():
     
     # Regular watch mode: real-time monitoring without stats
     elif args.watch > 0:
+        # Initial check for pods
+        limits_map = get_pod_limits(args.label, args.namespace)
+        if not limits_map:
+            print("\033[91m✗ No pods found matching the label selector. Exiting.\033[0m")
+            sys.exit(1)
+            
         try:
             iteration = 0
             while True:
@@ -743,11 +778,13 @@ def main():
                 
                 print(f"\033[1m\033[96mRefreshing every {args.watch} seconds...\033[0m \033[2m(Ctrl+C to stop)\033[0m")
                 print(f"\033[1mLabel:\033[0m {args.label}")
+                if args.namespace:
+                    print(f"\033[1mNamespace:\033[0m {args.namespace}")
                 print(f"\033[1mIteration:\033[0m {iteration + 1}")
                 
                 # Fetch limits before each iteration (no stats tracking)
-                limits_map = get_pod_limits(args.label)
-                metrics = get_pod_metrics(limits_map, args.label, show_stats=False)
+                limits_map = get_pod_limits(args.label, args.namespace)
+                metrics = get_pod_metrics(limits_map, args.label, show_stats=False, namespace=args.namespace)
                 display_metrics(metrics, args.format)
                 
                 iteration += 1
@@ -757,8 +794,11 @@ def main():
     
     # One-time check mode
     else:
-        limits_map = get_pod_limits(args.label)
-        metrics = get_pod_metrics(limits_map, args.label, show_stats=False)
+        limits_map = get_pod_limits(args.label, args.namespace)
+        if not limits_map:
+            print("\033[91m✗ No pods found matching the label selector. Exiting.\033[0m")
+            sys.exit(1)
+        metrics = get_pod_metrics(limits_map, args.label, show_stats=False, namespace=args.namespace)
         display_metrics(metrics, args.format)
 
 

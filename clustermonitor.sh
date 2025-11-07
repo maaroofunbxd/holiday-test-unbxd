@@ -2,9 +2,10 @@ ssh -t ai 'sudo su - ai-prod-us-east-1-eks'
 
 monitorpods() {
     STATS_DURATION=$1
+    NAMESPACE=$2
     cd ~/mrf/holiday-test-unbxd/
     git fetch origin && git rebase origin/main
-    ./monitorrerankerpods.sh $STATS_DURATION
+    ./monitorrerankerpods.sh $STATS_DURATION $NAMESPACE
 }
 
-monitorpods 200;
+monitorpods 200 ai;
