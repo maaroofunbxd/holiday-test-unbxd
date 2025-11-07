@@ -1,2 +1,3 @@
-mkdir -p ner-logs
-aws s3 cp s3://unbxd-des/nerloadtest/ ner-logs/ --recursive --exclude "*" --include "ner-*"
+service="${1:-ner}"
+mkdir -p ${service}-logs
+aws s3 cp s3://unbxd-des/${service}loadtest/ ${service}-logs/ --recursive --exclude "*" --include "${service}-*.log"
