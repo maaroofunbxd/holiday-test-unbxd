@@ -134,4 +134,4 @@ kubectl rollout history deployment reranker -nsearch
 #before load test
 kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
 
-./process_reranker_logs.sh ner-logs ner-
+./process_logs.sh ner-logs ner-

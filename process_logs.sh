@@ -2,11 +2,11 @@
 # Change to the project directory
 
 # Process all log files with given directory, prefix, and service
-# Usage: ./process_reranker_logs.sh <directory> <prefix> <service>
+# Usage: ./process_logs.sh <directory> <prefix> <service>
 # Examples:
-#   ./process_reranker_logs.sh reranker-logs reranker reranker
-#   ./process_reranker_logs.sh ner-logs ner ner
-#   ./process_reranker_logs.sh qcs-logs qcs qcs
+#   ./process_logs.sh reranker-logs reranker reranker
+#   ./process_logs.sh ner-logs ner ner
+#   ./process_logs.sh qcs-logs qcs qcs
 directory="${1:-reranker-logs}"
 prefix="${2:-reranker}"
 service="${3:-reranker}"
