@@ -1,13 +1,34 @@
 
 # Change to the project directory
 
-# Process all log files with given prefix and directory
-# Usage: ./process_reranker_logs.sh <directory> <prefix>
+# Process all log files with given directory, prefix, and service
+# Usage: ./process_reranker_logs.sh <directory> <prefix> <service>
+# Examples:
+#   ./process_reranker_logs.sh reranker-logs reranker reranker
+#   ./process_reranker_logs.sh ner-logs ner ner
+#   ./process_reranker_logs.sh qcs-logs qcs qcs
 directory="${1:-reranker-logs}"
 prefix="${2:-reranker}"
+service="${3:-reranker}"
+
+# Determine which extraction script to use based on service
+case "$service" in
+  reranker)
+    extract_script="extract_requests.py"
+    ;;
+  ner)
+    extract_script="extract_ner_requests.py"
+    ;;
+  qcs)
+    extract_script="extract_qcs_requests.py"
+    ;;
+  *)
+    extract_script="extract_requests.py"
+    ;;
+esac
 
 find "$directory" -name "${prefix}-*.log" -type f | while read -r file; do
   basename_file=$(basename "$file" .log)
-  output_file="${directory}/requests_${basename_file}.jsonl"
-  python3 extract_requests.py -i "$file" -o "$output_file"
+  output_file="${directory}/${service}_requests_${basename_file}.jsonl"
+  python3 "$extract_script" -i "$file" -o "$output_file"
 done
