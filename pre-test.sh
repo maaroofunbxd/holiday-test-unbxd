@@ -133,3 +133,5 @@ kubectl rollout history deployment reranker -nsearch
 
 #before load test
 kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
+
+kubectl annotate deployment ranking-ec7d9fa992-predictor-00327-deployment -nsearch autoscaling.knative.dev/scale-down-delay=20m --overwrite
