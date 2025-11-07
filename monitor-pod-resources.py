@@ -294,13 +294,7 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
         metric_row = {
             'POD': pod_name,
             'CONTAINER': container_name,
-            'CPU (current/limit)': cpu_fraction,
         }
-        
-        # Add CPU % and MEM % only when stats mode is NOT enabled
-        if not show_stats:
-            metric_row['CPU %'] = cpu_percent
-            metric_row['MEM %'] = mem_percent
         
         # Add statistics if requested
         if show_stats and history:
@@ -330,15 +324,22 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
             mem_indicator = "🔥" if mem_vol_limit_pct > 50 else ("⚠️" if mem_vol_limit_pct > 25 else "✓")
             
             metric_row.update({
-                'CPU Avg': f"{cpu_avg:.3f}" if cpu_values else "N/A",
+                'CPU Avg/Limit': f"{cpu_avg:.3f}/{cpu_limit_val:.2f}" if cpu_values and cpu_limit_val else "N/A",
                 'CPU Max': f"{cpu_max_val:.3f}" if cpu_max_val is not None else "N/A",
-                'CPU Volatility': f"{cpu_indicator} {cpu_vol_limit_pct:.1f}%" if cpu_values and cpu_limit_val else "N/A",
-                'Mem Avg': f"{mem_avg/(1024**3):.2f}Gi" if mem_values else "N/A",
+                'CPU Volatility': f"{cpu_vol_limit_pct:.1f}%" if cpu_values and cpu_limit_val else "N/A",
+                'Mem Avg/Limit': f"{mem_avg/(1024**3):.2f}/{mem_limit_val/(1024**3):.2f}Gi" if mem_values and mem_limit_val else "N/A",
                 'Mem Max': f"{mem_max_val/(1024**3):.2f}Gi" if mem_max_val is not None else "N/A",
-                'Mem Volatility': f"{mem_indicator} {mem_vol_limit_pct:.1f}%" if mem_values and mem_limit_val else "N/A",
+                'Mem Volatility': f"{mem_vol_limit_pct:.1f}%" if mem_values and mem_limit_val else "N/A",
+                'CPU Status': cpu_indicator if cpu_values and cpu_limit_val else "N/A",
+                'Mem Status': mem_indicator if mem_values and mem_limit_val else "N/A",
+            })
+        else:
+            # Non-stats mode: show current usage as percentage of limit
+            metric_row.update({
+                'CPU Current/Limit': cpu_percent,
+                'Mem Current/Limit': mem_percent,
             })
         
-        metric_row['MEMORY (current/limit)'] = mem_fraction_gb
         metrics.append(metric_row)
     
     # Check for deleted containers (only if stats tracking is enabled)
@@ -410,16 +411,33 @@ def display_metrics(metrics, table_format='grid'):
     df = pd.DataFrame(metrics)
     
     # Apply coloring to percentage columns (only in non-stats mode)
-    if 'CPU %' in df.columns:
-        df['CPU %'] = df['CPU %'].apply(colorize_percentage)
-    if 'MEM %' in df.columns:
-        df['MEM %'] = df['MEM %'].apply(colorize_percentage)
+    if 'CPU Current/Limit' in df.columns:
+        df['CPU Current/Limit'] = df['CPU Current/Limit'].apply(colorize_percentage)
+    if 'Mem Current/Limit' in df.columns:
+        df['Mem Current/Limit'] = df['Mem Current/Limit'].apply(colorize_percentage)
     
-    # Apply coloring to volatility columns if they exist (only in stats mode)
+    # Apply coloring to volatility percentage columns if they exist (only in stats mode)
     if 'CPU Volatility' in df.columns:
-        df['CPU Volatility'] = df['CPU Volatility'].apply(colorize_volatility)
+        df['CPU Volatility'] = df['CPU Volatility'].apply(colorize_percentage)
     if 'Mem Volatility' in df.columns:
-        df['Mem Volatility'] = df['Mem Volatility'].apply(colorize_volatility)
+        df['Mem Volatility'] = df['Mem Volatility'].apply(colorize_percentage)
+    
+    # Apply coloring to status indicator columns
+    def colorize_status_indicator(val):
+        if val == 'N/A':
+            return val
+        if '🔥' in val:
+            return f'\033[91m{val}\033[0m'  # Red
+        elif '⚠️' in val:
+            return f'\033[93m{val}\033[0m'  # Yellow
+        elif '✓' in val:
+            return f'\033[92m{val}\033[0m'  # Green
+        return val
+    
+    if 'CPU Status' in df.columns:
+        df['CPU Status'] = df['CPU Status'].apply(colorize_status_indicator)
+    if 'Mem Status' in df.columns:
+        df['Mem Status'] = df['Mem Status'].apply(colorize_status_indicator)
     
     # Print with tabulate for beautiful tables
     print(f"\n{tabulate(df, headers='keys', tablefmt=table_format, showindex=False)}\n")
