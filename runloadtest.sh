@@ -8,4 +8,4 @@ ssh -t ubuntu@ip-10-0-1-231
     which k6 && ./k6run.sh $RPS $DURATION
 }
 
-k6-run 110 60s;
+k6-run 120 60s;
