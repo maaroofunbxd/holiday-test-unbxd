@@ -35,7 +35,7 @@ python3 monitor-pod-resources.py --stats $STATS_DURATION --watch 5  -l "app in (
 MONITOR_PID1=$!
 
 echo "  - Monitoring ranking/embedding pods..."
-python3 monitor-pod-resources.py --stats $STATS_DURATION --watch 5  -l "algo in (ranking,embedding)" --output ${time_ist}ranking-embedding.csv &
+python3 monitor-pod-resources.py --stats $STATS_DURATION --watch 5  -l "algo in (ranking,embeddings)" --output ${time_ist}ranking-embedding.csv &
 MONITOR_PID2=$!
 
 # Wait for both monitors to complete
