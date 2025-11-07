@@ -1,0 +1,1 @@
+ssh usejump.unbxd.io < ./clustermonitor.sh
