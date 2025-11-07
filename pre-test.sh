@@ -130,11 +130,6 @@ kubectl rollout status deployment reranker -nsearch
 kubectl rollout history deployment reranker -nsearch
 
 
-alias monitorpods='cd ~/mrf/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && ./monitorrerankerpods.sh'
-monitorpods
-alias k6-run='cd ~/mrf/loadtest/holiday-test-unbxd/ && git fetch origin && git rebase origin/main && which k6 && ./run-reranker-load.sh'
-k6-run
-
 
 #before load test
 kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
