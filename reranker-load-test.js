@@ -45,7 +45,14 @@ const payloads = new SharedArray('payloads', () => {
     allPayloads = allPayloads.concat(filePayloads);
   });
   
-  return allPayloads;
+  // Filter for specific sitekey
+  const targetSitekey = 'hsn-com700091495001458';
+  const filteredPayloads = allPayloads.filter(p => p.sitekey === targetSitekey);
+  
+  console.log(`Total payloads loaded: ${allPayloads.length}`);
+  console.log(`Filtered payloads for ${targetSitekey}: ${filteredPayloads.length}`);
+  
+  return filteredPayloads;
 });
 
 export const options = {

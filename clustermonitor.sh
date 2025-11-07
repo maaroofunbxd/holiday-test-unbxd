@@ -7,4 +7,4 @@ monitorpods() {
     ./monitorrerankerpods.sh $STATS_DURATION
 }
 
-monitorpods 220;
+monitorpods 200;
