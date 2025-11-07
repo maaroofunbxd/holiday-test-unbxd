@@ -1,0 +1,1 @@
+aws s3 cp s3://unbxd-des/nerloadtest/ . --recursive --exclude "*" --include "ner-*"
