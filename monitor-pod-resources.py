@@ -295,7 +295,6 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
             'POD': pod_name,
             'CONTAINER': container_name,
             'CPU (current/limit)': cpu_fraction,
-            'MEMORY (current/limit)': mem_fraction_gb,
         }
         
         # Add CPU % and MEM % only when stats mode is NOT enabled
@@ -339,6 +338,7 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, show_changes=F
                 'Mem Volatility': f"{mem_indicator} {mem_vol_limit_pct:.1f}%" if mem_values and mem_limit_val else "N/A",
             })
         
+        metric_row['MEMORY (current/limit)'] = mem_fraction_gb
         metrics.append(metric_row)
     
     # Check for deleted containers (only if stats tracking is enabled)
