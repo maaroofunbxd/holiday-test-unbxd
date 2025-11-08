@@ -51,7 +51,7 @@ const payloads = new SharedArray('payloads', () => {
   
   // console.log(`Total payloads loaded: ${allPayloads.length}`);
   // console.log(`Filtered payloads for ${targetSitekey}: ${filteredPayloads.length}`);
-  filteredPayloads = allPayloads;  
+  const filteredPayloads = allPayloads;  
   return filteredPayloads;
 });
 
