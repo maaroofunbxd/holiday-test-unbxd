@@ -1,6 +1,3 @@
-cd /home/ai-ap-southeast-1-eks/mrf
-alias logfetchstart='cd holiday-test-unbxd/ && sudo ./log-daemon.sh start app=reranker ./reranker-logs'
-logfetchstart
 
 
 # last years (2024) reranker go use-1d showing much larger RPS for use-1d than now : max -> (20,0.1)
@@ -28,9 +25,6 @@ kubectl get deploy reranker -nsearch -oyaml > prod.yaml
 #in local
 dyff between demo.yaml prod.yaml
 
-#CHECK if it is DEBUG or ERROR
-# kubectl set env deployment/reranker --containers="pyreranker" LOG_LEVEL=ERROR -nsearch
-# kubectl set env deployment/reranker --containers="goreranker" LOG_LEVEL=error -nsearch
 
 SOURCE_IMAGE=$(kubectl get deployment reranker -nsearch -o jsonpath="{.spec.template.spec.containers[?(@.name=='pyreranker')].image}")
 echo "SOURCE_IMAGE: $SOURCE_IMAGE"
@@ -133,14 +127,4 @@ kubectl rollout history deployment reranker -nsearch
 
 #before load test
 kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
-
-#steps
-#1. upload logs to s3
-sh uploadtos3.sh qcs
-
-#2. download logs from s3
-sh downloadfroms3.sh qcs
-
-#3. process logs
-sh ./process_logs.sh ner-logs ner ner
-
+kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDIS_CACHE_TTL=80
