@@ -122,7 +122,9 @@ check_pod_logs() {
 # Main monitoring loop
 while true; do
     # Get all pods matching the label selector
-    pods=$(kubectl get pods -n "$NAMESPACE" -l "$LABEL_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+    command="kubectl get pods -n "$NAMESPACE" -l "$LABEL_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null"
+    echo "command: $command"
+    pods=$(eval $command)
     echo "pods: $pods"
     if [ -z "$pods" ]; then
         echo -e "${RED}[$(get_human_time)]${NC} No pods found with label $LABEL_SELECTOR in namespace $NAMESPACE"
