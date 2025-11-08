@@ -45,13 +45,13 @@ const payloads = new SharedArray('payloads', () => {
     allPayloads = allPayloads.concat(filePayloads);
   });
   
-  // Filter for specific sitekey
-  const targetSitekey = 'hsn-com700091495001458';
-  const filteredPayloads = allPayloads.filter(p => p.sitekey === targetSitekey);
+  // // Filter for specific sitekey
+  // const targetSitekey = 'hsn-com700091495001458';
+  // const filteredPayloads = allPayloads.filter(p => p.sitekey === targetSitekey);
   
-  console.log(`Total payloads loaded: ${allPayloads.length}`);
-  console.log(`Filtered payloads for ${targetSitekey}: ${filteredPayloads.length}`);
-  
+  // console.log(`Total payloads loaded: ${allPayloads.length}`);
+  // console.log(`Filtered payloads for ${targetSitekey}: ${filteredPayloads.length}`);
+  filteredPayloads = allPayloads;  
   return filteredPayloads;
 });
 
