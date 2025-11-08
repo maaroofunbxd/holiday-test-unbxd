@@ -1,4 +1,7 @@
-#ubuntuserver
+#if from local run 
+#ssh ec2-user@usejump.unbxd.io < ./runloadtest.sh
+
+#from ubuntuserver
 ssh -t ubuntu@ip-10-0-1-231 
  k6-run() {
     RPS=$1

@@ -1,1 +1,0 @@
-ssh ec2-user@usejump.unbxd.io < ./runloadtest.sh
