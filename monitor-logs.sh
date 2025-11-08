@@ -122,11 +122,13 @@ check_pod_logs() {
 # Main monitoring loop
 while true; do
     # Get all pods matching the label selector
-    command="kubectl get pods -n "$NAMESPACE" -l "$LABEL_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null"
-    echo "command: $command"
-    pods=$(eval $command)
-    echo "pods: $pods"
-    if [ -z "$pods" ]; then
+    echo "[DEBUG] Running: kubectl get pods -n '$NAMESPACE' -l '$LABEL_SELECTOR'"
+    echo "[DEBUG] NAMESPACE='$NAMESPACE', LABEL_SELECTOR='$LABEL_SELECTOR'"
+    pods=$(kubectl get pods -n "$NAMESPACE" -l "$LABEL_SELECTOR" -o jsonpath='{.items[*].metadata.name}' 2>&1)
+    echo "[DEBUG] Result: '$pods'"
+    echo "[DEBUG] Exit code: $?"
+    
+    if [ -z "$pods" ] || [[ "$pods" == *"error"* ]] || [[ "$pods" == *"Error"* ]]; then
         echo -e "${RED}[$(get_human_time)]${NC} No pods found with label $LABEL_SELECTOR in namespace $NAMESPACE"
         sleep "$CHECK_INTERVAL"
         continue
