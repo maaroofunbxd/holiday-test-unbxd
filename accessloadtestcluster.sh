@@ -19,10 +19,10 @@ if [ -z "$CMD" ]; then
   echo "  ./k6run.sh           # Run k6 tests"
   echo "  kubectl get nodes    # List nodes"
   echo ""
-  ssh -t ubuntu@ip-10-0-1-231 "cd ~/mrf/loadtest/holiday-test-unbxd && exec bash"
+  ssh -t ec2-user@usejump.unbxd.io "ssh -t ubuntu@ip-10-0-1-231 'cd ~/mrf/loadtest/holiday-test-unbxd && exec bash'"
 else
   # Run specific command/script
-  ssh -t ubuntu@ip-10-0-1-231 "cd ~/mrf/loadtest/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && $CMD"
+  ssh -t ec2-user@usejump.unbxd.io "ssh -t ubuntu@ip-10-0-1-231 'cd ~/mrf/loadtest/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && $CMD'"
 fi
 
 #HOST=$(ssh ec2-user@usejump.unbxd.io "bash -s" -- < ./accesscluster.sh "./get-service-host.sh reranker")
