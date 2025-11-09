@@ -1,6 +1,6 @@
 #if from local run 
 #ssh ec2-user@usejump.unbxd.io < ./runloadtest.sh
-HOST=${1:-internal-aacb4a1ef44964e9a8d7979f74de2ea7-218368305.ap-southeast-1.elb.amazonaws.com}
+HOST=${1:-http://internal-aacb4a1ef44964e9a8d7979f74de2ea7-218368305.ap-southeast-1.elb.amazonaws.com}
 
 #from ubuntuserver
 k6_run() {
