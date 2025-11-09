@@ -19,7 +19,7 @@ echo "Running load test with RPS=$RPS, DURATION=$DURATION, and HOST=$HOST"
 FILES=$(find "$(pwd)/reranker-ap-southeast-1-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
 #20251103-1810
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
-k6 run -e RPS=$RPS -e DURATION=$DURATION -e HOST=$HOST -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json "$(pwd)/reranker-load-test.js"
+sudo k6 run -e RPS=$RPS -e DURATION=$DURATION -e HOST=$HOST -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json "$(pwd)/reranker-load-test.js"
 
 # Add k6 output files to upload queue (using absolute paths)
 echo "$(pwd)/${time_ist}raw-data.json" >> .s3_upload_queue
