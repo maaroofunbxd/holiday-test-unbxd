@@ -16,10 +16,15 @@ HOST=$3
 echo "Running load test with RPS=$RPS, DURATION=$DURATION, and HOST=$HOST"
 
 #run from ubuntu@ip-10-0-1-231
-FILES=$(find "$(pwd)/reranker-ap-southeast-1-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
+WORK_DIR=$(pwd)
+FILES=$(find "$WORK_DIR/reranker-ap-southeast-1-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
 #20251103-1810
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
-sudo k6 run -e RPS=$RPS -e DURATION=$DURATION -e HOST=$HOST -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json "$(pwd)/reranker-load-test.js"
+
+# Ensure all directories in path are traversable and all files readable by root
+sudo chmod -R a+rX "$WORK_DIR"
+
+sudo k6 run -e RPS=$RPS -e DURATION=$DURATION -e HOST=$HOST -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json "$WORK_DIR/reranker-load-test.js"
 
 # Add k6 output files to upload queue (using absolute paths)
 echo "$(pwd)/${time_ist}raw-data.json" >> .s3_upload_queue
