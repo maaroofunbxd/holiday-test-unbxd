@@ -8,12 +8,12 @@ logfetchstart() {
 
 
 #steps
-#1. upload logs to s3
-sh uploadtos3.sh qcs
+#1. from cluster,upload logs to s3
+sh uploadtos3.sh reranker
 
-#2. download logs from s3
+#2. ubuntu serverdownload logs from s3
 sh downloadfroms3.sh qcs
 
-#3. process logs
+#3. ubuntu server, process logs
 sh ./process_logs.sh ner-logs ner ner
 
