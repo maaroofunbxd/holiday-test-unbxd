@@ -6,11 +6,10 @@ ssh -t ubuntu@ip-10-0-1-231 "
   git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 &&
   echo '=== DEBUG INFO ===' &&
   echo 'Current user:' && whoami && id &&
-  echo 'Current directory:' && pwd &&
-  echo 'reranker-load-test.js permissions:' && ls -la reranker-load-test.js &&
-  echo 'reranker-ap-southeast-1-logs directory permissions:' && ls -ld reranker-ap-southeast-1-logs/ &&
-  echo 'Sample files in logs directory:' && ls -la reranker-ap-southeast-1-logs/ | head -5 &&
-  echo 'Can I read a sample file:' && head -1 reranker-ap-southeast-1-logs/reranker_requests_reranker-7b7c7b946c-qr5lh_goreranker_20251101_164000.jsonl 2>&1 | head -c 100 &&
+  echo 'Looking for .jsonl files:' && find reranker-ap-southeast-1-logs/ -name '*.jsonl' -type f | head -5 &&
+  echo 'Permissions on .jsonl files:' && find reranker-ap-southeast-1-logs/ -name '*.jsonl' -type f -exec ls -la {} \; | head -10 &&
+  echo 'Can I read the specific file from error:' && ls -la reranker-ap-southeast-1-logs/reranker_requests_reranker-7b7c7b946c-qr5lh_goreranker_20251101_164000.jsonl 2>&1 &&
+  echo 'Trying to read it:' && head -c 100 reranker-ap-southeast-1-logs/reranker_requests_reranker-7b7c7b946c-qr5lh_goreranker_20251101_164000.jsonl 2>&1 &&
   echo '' && echo '=== END DEBUG ===' &&
   sh $CMD $HOST
 "
