@@ -74,6 +74,15 @@ start() {
     echo "Label: $label_selector"
     echo "Log directory: $log_dir"
     echo "Namespace: $namespace"
+    echo ""
+    echo "Debug: Current environment variables:"
+    echo "  PATH=$PATH"
+    echo "  HOME=$HOME"
+    echo "  KUBECONFIG=$KUBECONFIG"
+    echo "  AWS_PROFILE=$AWS_PROFILE"
+    echo "  AWS_REGION=$AWS_REGION"
+    echo "  AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:0:20}..." # Show only first 20 chars
+    echo ""
     
     # Use env to explicitly pass environment variables to nohup
     nohup env \
