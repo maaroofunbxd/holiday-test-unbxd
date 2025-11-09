@@ -22,8 +22,9 @@ if [ -z "$CMD" ]; then
   echo "  ./get-service-host.sh reranker   # Get reranker host"
   echo "  kubectl get pods -n search       # List pods"
   echo ""
-  ssh -t ec2-user@usejump.unbxd.io 'ssh -t ai "sudo su - ai-prod-us-east-1-eks -c \"cd ~/mrf/holiday-test-unbxd && exec bash\""'
+  #ssh -t ec2-user@usejump.unbxd.io 'ssh -t ai "sudo su - ai-prod-us-east-1-eks -c \"cd ~/mrf/holiday-test-unbxd && exec bash\""'
+  ssh -t ec2-user@usejump.unbxd.io 'ssh -t 10.204.19.93 "sudo su - ai-ap-southeast-1-eks -c \"cd ~/mrf/holiday-test-unbxd && exec bash\""'
 else
   # Run specific command/script
-  ssh -t ec2-user@usejump.unbxd.io "ssh -t ai \"sudo su - ai-prod-us-east-1-eks -c 'cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && ${CMD}'\""
+  ssh -t ec2-user@usejump.unbxd.io "ssh -t 10.204.19.93 \"sudo su - ai-ap-southeast-1-eks -c 'cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && ${CMD}'\""
 fi
