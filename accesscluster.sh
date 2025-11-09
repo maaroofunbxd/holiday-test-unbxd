@@ -1,12 +1,12 @@
 #if from local run 
-#ssh ec2-user@usejump.unbxd.io < ./accesscluster.sh
+#ssh ec2-user@usejump.unbxd.io "bash -s" -- < ./accesscluster.sh "pwd"
 
-ssh -t ai 'sudo su - ai-prod-us-east-1-eks'
-#ssh -t ai 'sudo su - ai-ap-southeast-1-eks' 
+#!/bin/bash
+CMD="${1:-./clustermonitor.sh}"
 
-cd ~/mrf/holiday-test-unbxd/
-git fetch origin && git rebase origin/main
-
-./clustermonitor.sh
-
-
+ssh -t ai "
+  sudo su - ai-prod-us-east-1-eks -c '
+    cd ~/mrf/holiday-test-unbxd &&
+    ${CMD}
+  '
+"
