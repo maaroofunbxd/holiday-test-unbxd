@@ -16,7 +16,7 @@ HOST=$3
 echo "Running load test with RPS=$RPS, DURATION=$DURATION, and HOST=$HOST"
 
 #run from ubuntu@ip-10-0-1-231
-FILES=$(find "$(pwd)/reranker-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
+FILES=$(find "$(pwd)/reranker-ap-southeast-1-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
 #20251103-1810
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
 k6 run -e RPS=$RPS -e DURATION=$DURATION -e HOST=$HOST -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json reranker-load-test.js
