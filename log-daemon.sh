@@ -75,9 +75,25 @@ start() {
     echo "Log directory: $log_dir"
     echo "Namespace: $namespace"
     
-    # Start in background with & - inherits all environment variables
-    # Use disown to detach from shell so it survives logout
-    "$MONITOR_SCRIPT" "$label_selector" "$log_dir" "$namespace" "$check_interval" "$size_threshold" >> "$LOG_FILE" 2>&1 &
+    # Create a wrapper script that preserves environment
+    local safe_label=$(echo "$label_selector" | sed 's/[^a-zA-Z0-9_-]/_/g')
+    local wrapper_script="$SCRIPT_DIR/.${safe_label}-wrapper.sh"
+    cat > "$wrapper_script" <<EOF
+#!/bin/bash
+export AWS_PROFILE="$AWS_PROFILE"
+export AWS_DEFAULT_REGION="$AWS_DEFAULT_REGION"
+export AWS_REGION="$AWS_REGION"
+export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+export AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN"
+export KUBECONFIG="$KUBECONFIG"
+export HOME="$HOME"
+exec "$MONITOR_SCRIPT" "$label_selector" "$log_dir" "$namespace" "$check_interval" "$size_threshold"
+EOF
+    chmod +x "$wrapper_script"
+    
+    # Start in background with disown
+    "$wrapper_script" >> "$LOG_FILE" 2>&1 &
     PID=$!
     disown
     echo $PID > "$PID_FILE"
