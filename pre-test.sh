@@ -10,7 +10,7 @@
 # https://app.datadoghq.com/dashboard/dbd-x57-fig/reranker?fromUser=true&fullscreen_end_ts=1762159766854&fullscreen_paused=false&fullscreen_refresh_mode=sliding&fullscreen_section=overview&fullscreen_start_ts=1761554966854&fullscreen_widget=8411901009295312&refresh_mode=sliding&tpl_var_region%5B0%5D=us-east-1&from_ts=1762073314258&to_ts=1762159714258&live=true
 
 
-cd /home/ai-ap-southeast-1-eks/mrf
+sudo su - ai-prod-us-east-1-eks
 kubectl get configmap  reranker-demo-envoy -nsearch -oyaml > olddemoconfigmap.yaml
 kubectl get configmap reranker-envoy -nsearch -o json | jq '{data: .data}' > tmp.json
 kubectl patch configmap reranker-demo-envoy -nsearch --type merge -p "$(cat tmp.json)"
@@ -126,5 +126,8 @@ kubectl rollout history deployment reranker -nsearch
 
 
 #before load test
-kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
+#kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
+
 kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDIS_CACHE_TTL=80
+kubectl set env deployment/reranker -nsearch --containers="goreranker" LOG_LEVEL=error
+kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL=ERROR

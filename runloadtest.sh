@@ -5,7 +5,9 @@
 k6-run() {
     RPS=$1
     DURATION=$2
-    which k6 && ./k6run.sh $RPS $DURATION
+    HOST=$3
+    which k6 && ./k6run.sh $RPS $DURATION $HOST
 }
 
-k6-run 200 180s;
+# Then run the load test:
+# k6-run 200 180s http://$HOST
