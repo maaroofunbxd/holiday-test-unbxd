@@ -21,10 +21,11 @@ FILES=$(find "$WORK_DIR/reranker-ap-southeast-1-logs" -maxdepth 1 -name "*.jsonl
 #20251103-1810
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
 
-# Ensure all directories in path are traversable and all files readable by root
-sudo chmod -R a+rX "$WORK_DIR"
+# # Fix ownership of jsonl files if they're owned by root
+# sudo chown -R ubuntu:ubuntu reranker-ap-southeast-1-logs/ 2>/dev/null || true
 
-sudo k6 run -e RPS=$RPS -e DURATION=$DURATION -e HOST=$HOST -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json "$WORK_DIR/reranker-load-test.js"
+# Run k6 WITHOUT sudo (snap confinement prevents sudo k6 from accessing /home/ubuntu)
+k6 run -e RPS=$RPS -e DURATION=$DURATION -e HOST=$HOST -e INPUT_FILES="$FILES" --out json=${time_ist}raw-data.json --summary-export=${time_ist}summary.json "$WORK_DIR/reranker-load-test.js"
 
 # Add k6 output files to upload queue (using absolute paths)
 echo "$(pwd)/${time_ist}raw-data.json" >> .s3_upload_queue
