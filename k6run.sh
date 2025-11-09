@@ -17,7 +17,8 @@ echo "Running load test with RPS=$RPS, DURATION=$DURATION, and HOST=$HOST"
 
 #run from ubuntu@ip-10-0-1-231
 WORK_DIR=$(pwd)
-FILES=$(find "$WORK_DIR/reranker-ap-southeast-1-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
+REGION=${REGION:-ap-southeast-1}
+FILES=$(find "$WORK_DIR/reranker-${REGION}-logs" -maxdepth 1 -name "*.jsonl" -type f | tr '\n' ',' | sed 's/,$//')
 #20251103-1810
 time_ist=$(TZ=Asia/Kolkata date +%Y%m%d-%H%M)
 
