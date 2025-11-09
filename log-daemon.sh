@@ -75,10 +75,18 @@ start() {
     echo "Log directory: $log_dir"
     echo "Namespace: $namespace"
     
-    # Export environment variables so nohup inherits them
-    export AWS_PROFILE AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN KUBECONFIG HOME PATH
-    
-    nohup "$MONITOR_SCRIPT" "$label_selector" "$log_dir" "$namespace" "$check_interval" "$size_threshold" >> "$LOG_FILE" 2>&1 &
+    # Use env to explicitly pass environment variables to nohup
+    nohup env \
+        PATH="$PATH" \
+        HOME="$HOME" \
+        KUBECONFIG="$KUBECONFIG" \
+        AWS_PROFILE="$AWS_PROFILE" \
+        AWS_DEFAULT_REGION="$AWS_DEFAULT_REGION" \
+        AWS_REGION="$AWS_REGION" \
+        AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+        AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+        AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" \
+        "$MONITOR_SCRIPT" "$label_selector" "$log_dir" "$namespace" "$check_interval" "$size_threshold" >> "$LOG_FILE" 2>&1 &
     PID=$!
     echo $PID > "$PID_FILE"
     echo "Monitor started (PID: $PID)"
