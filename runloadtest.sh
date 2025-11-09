@@ -11,4 +11,4 @@ k6_run() {
 }
 
 # Then run the load test:
-k6_run 200 180s $HOST
+k6_run 100 180s $HOST
