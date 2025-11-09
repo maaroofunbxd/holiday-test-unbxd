@@ -75,11 +75,11 @@ start() {
     echo "Log directory: $log_dir"
     echo "Namespace: $namespace"
     
-    # Preserve AWS and Kubernetes environment variables for nohup
-    export AWS_PROFILE AWS_DEFAULT_REGION AWS_REGION AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN KUBECONFIG
-    
-    nohup "$MONITOR_SCRIPT" "$label_selector" "$log_dir" "$namespace" "$check_interval" "$size_threshold" >> "$LOG_FILE" 2>&1 &
+    # Start in background with & - inherits all environment variables
+    # Use disown to detach from shell so it survives logout
+    "$MONITOR_SCRIPT" "$label_selector" "$log_dir" "$namespace" "$check_interval" "$size_threshold" >> "$LOG_FILE" 2>&1 &
     PID=$!
+    disown
     echo $PID > "$PID_FILE"
     echo "Monitor started (PID: $PID)"
     echo "PID file: $PID_FILE"
