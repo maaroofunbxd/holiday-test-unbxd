@@ -27,6 +27,11 @@ start_monitor() {
     
     mkdir -p "$LOG_DIR"
     
+    # Create log and PID files with proper permissions
+    touch "$MONITOR_LOG" 2>/dev/null || { echo "Error: Cannot create $MONITOR_LOG"; return 1; }
+    touch "$PID_FILE" 2>/dev/null || { echo "Error: Cannot create $PID_FILE"; return 1; }
+    chmod 644 "$MONITOR_LOG" "$PID_FILE" 2>/dev/null
+    
     echo "Starting monitor for '$LABEL_SELECTOR'..."
     echo "Saving pod logs to: $LOG_DIR/"
     echo "Monitor output: $MONITOR_LOG"

@@ -35,8 +35,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Create log directory
-mkdir -p "$LOG_DIR"
+# Create log directory with proper permissions
+mkdir -p "$LOG_DIR" 2>/dev/null
+chmod 755 "$LOG_DIR" 2>/dev/null
 
 echo "Starting log monitor for pods with label '$LABEL_SELECTOR' in namespace: $NAMESPACE"
 echo "Logs will be saved to: $LOG_DIR"

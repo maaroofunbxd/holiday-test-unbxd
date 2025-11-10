@@ -15,3 +15,5 @@ fi
 # Output the HOST (no http:// prefix, add that when using it)
 echo "$HOST"
 
+
+
