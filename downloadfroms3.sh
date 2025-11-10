@@ -1,3 +1,4 @@
 service="${1:-ner}"
-mkdir -p ${service}-ap-southeast-1-logs
-aws s3 cp s3://unbxd-des/${service}loadtest-ap-southeast-1/ ${service}-ap-southeast-1-logs/ --recursive --exclude "*" --include "${service}-*.log"
+region="${2:-ap-southeast-1}"
+mkdir -p ${service}-${region}-logs
+aws s3 cp s3://unbxd-des/${service}loadtest-${region}/ ${service}-${region}-logs/ --recursive --exclude "*" --include "${service}-*.log"

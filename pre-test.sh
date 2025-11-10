@@ -1,4 +1,18 @@
+#TO GET the prod logs
+kubectl set env deploy/reranker -nsearch --list --resolve
+kubectl set env deployment/reranker -nsearch --containers="goreranker" LOG_LEVEL=debug
+kubectl annotate deploy reranker -n search \
+  kubernetes.io/change-cause="goreranker debugging"
 
+kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL=DEBUG
+kubectl annotate deploy reranker -n search \
+  kubernetes.io/change-cause="pyreranker debugging"
+kubectl rollout status deployment reranker -nsearch
+kubectl rollout history deployment reranker -nsearch
+
+
+#sudo  ./log-daemon.sh start app=reranker ./reranker-gcp-us-logs search 30 6
+#sudo ./log-daemon.sh stop app=reranker
 
 # last years (2024) reranker go use-1d showing much larger RPS for use-1d than now : max -> (20,0.1)
 # reranker2024:
@@ -112,22 +126,13 @@ kubectl rollout history deployment reranker-demo -nsearch
 # kubectl rollout undo deployment reranker-demo -nsearch
 # kubectl rollout undo deployment reranker-demo -nsearch --to-revision=1
 
-#TO GET the prod logs
-kubectl set env deployment/reranker -nsearch --containers="goreranker" LOG_LEVEL=debug
-kubectl annotate deploy reranker -n search \
-  kubernetes.io/change-cause="goreranker debugging"
-
-kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL=DEBUG
-kubectl annotate deploy reranker -n search \
-  kubernetes.io/change-cause="pyreranker debugging"
-kubectl rollout status deployment reranker -nsearch
-kubectl rollout history deployment reranker -nsearch
-
-
-
 #before load test
 #kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
 
 kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDIS_CACHE_TTL=80
 kubectl set env deployment/reranker -nsearch --containers="goreranker" LOG_LEVEL=error
 kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL=ERROR
+kubectl annotate deploy reranker -n search \
+  kubernetes.io/change-cause="reset"
+kubectl rollout status deployment reranker -nsearch
+kubectl rollout history deployment reranker -nsearch

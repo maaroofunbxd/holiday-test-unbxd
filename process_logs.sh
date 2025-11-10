@@ -1,15 +1,16 @@
 
 # Change to the project directory
 
-# Process all log files with given directory, prefix, and service
-# Usage: ./process_logs.sh <directory> <prefix> <service>
+# Process all log files with given directory, prefix, service, and region
+# Usage: ./process_logs.sh <directory> <prefix> <service> <region>
 # Examples:
-#   ./process_logs.sh reranker-logs reranker reranker
-#   ./process_logs.sh ner-logs ner ner
-#   ./process_logs.sh qcs-logs qcs qcs
-directory="${1:-reranker-logs}"
+#   ./process_logs.sh reranker-ap-southeast-1-logs reranker reranker ap-southeast-1
+#   ./process_logs.sh ner-ap-southeast-1-logs ner ner ap-southeast-1
+#   ./process_logs.sh qcs-us-east-1-logs qcs qcs us-east-1
+directory="${1:-reranker-ap-southeast-1-logs}"
 prefix="${2:-reranker}"
 service="${3:-reranker}"
+region="${4:-ap-southeast-1}"
 
 # Determine which extraction script to use based on service
 case "$service" in
