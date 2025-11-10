@@ -1,17 +1,31 @@
 #!/bin/bash
 # Interactive access to loadtest cluster - lands in holiday-test-unbxd directory
 # 
-# Usage: ./accessloadtestcluster.sh [script_to_run] [region]
+# Usage: ./accessloadtestcluster.sh [script_to_run|@file]
 # 
 # Examples:
 #   ./accessloadtestcluster.sh                   # Interactive mode
-#   ./accessloadtestcluster.sh "sh runloadtest.sh"  # Run load test
-#   ./accessloadtestcluster.sh "./k6run.sh"      # Run k6 tests
-#   ./accessloadtestcluster.sh "kubectl get nodes"  # Run kubectl command
-#   REGION=us-east-1 ./accessloadtestcluster.sh "sh runloadtest.sh"  # Specify region
-HOST=${HOST:-http://internal-aacb4a1ef44964e9a8d7979f74de2ea7-218368305.ap-southeast-1.elb.amazonaws.com}
+#   HOST=http://host.com ./accessloadtestcluster.sh "sh runloadtest.sh"  # Run with HOST
+#   HOST=http://host.com ./accessloadtestcluster.sh @commands.txt  # Read commands from file
+#   REGION=use-1d HOST=http://host.com ./accessloadtestcluster.sh @commands.txt  # Specify region and host
+
 REGION=${REGION:-ap-southeast-1}
-CMD="${1}"
+HOST=${HOST:-http://internal-aacb4a1ef44964e9a8d7979f74de2ea7-218368305.ap-southeast-1.elb.amazonaws.com}
+
+# Check if first argument starts with @ (file reference)
+if [[ "${1}" == @* ]]; then
+  # Remove @ prefix and read from file
+  CMD_FILE="${1:1}"
+  if [ -f "$CMD_FILE" ]; then
+    CMD=$(cat "$CMD_FILE")
+    echo "Reading commands from file: $CMD_FILE"
+  else
+    echo "Error: File not found: $CMD_FILE"
+    exit 1
+  fi
+else
+  CMD="${1}"
+fi
 
 if [ -z "$CMD" ]; then
   # Interactive mode - no command provided

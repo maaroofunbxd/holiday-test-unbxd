@@ -4,17 +4,30 @@
 #!/bin/bash
 # Interactive access to cluster - lands in holiday-test-unbxd directory
 # 
-# Usage: ./accesscluster.sh [script_to_run]
+# Usage: ./accesscluster.sh [REGION] [script_to_run|@file]
 # 
 # Examples:
 #   ./accesscluster.sh                           # Interactive mode
-#   ./accesscluster.sh "./clustermonitor.sh"     # Run monitoring script
-#   ./accesscluster.sh "kubectl get pods -n search"  # Run kubectl command
-#   ./accesscluster.sh "./get-service-host.sh reranker"  # Get service host
-#   REGION=us-east-1 ./accesscluster.sh "./clustermonitor.sh"  # Specify region
+#   ./accesscluster.sh use-1d "./clustermonitor.sh"  # Run with specific region
+#   ./accesscluster.sh use-1d @commands.txt      # Read commands from file with region
+#   ./accesscluster.sh ap-southeast-1 "kubectl get pods -n search"  # Run kubectl command
 
-REGION=${REGION:-ap-southeast-1}
-CMD="${1}"
+REGION=${1:-ap-southeast-1}
+
+# Check if second argument starts with @ (file reference)
+if [[ "${2}" == @* ]]; then
+  # Remove @ prefix and read from file
+  CMD_FILE="${2:1}"
+  if [ -f "$CMD_FILE" ]; then
+    CMD=$(cat "$CMD_FILE")
+    echo "Reading commands from file: $CMD_FILE"
+  else
+    echo "Error: File not found: $CMD_FILE"
+    exit 1
+  fi
+else
+  CMD="${2}"
+fi
 
 # Set region-specific SSH access
 if [ "$REGION" = "use-1d" ]; then
