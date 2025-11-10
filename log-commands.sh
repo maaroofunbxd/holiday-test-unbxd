@@ -3,8 +3,29 @@ logfetchstart() {
     kubectl set env deployment/reranker --containers="pyreranker" LOG_LEVEL=DEBUG -nsearch
     kubectl set env deployment/reranker --containers="goreranker" LOG_LEVEL=debug -nsearch
     cd ~/mrf/holiday-test-unbxd/ ;
-    # Use sudo -E to preserve environment variables (kubectl context, AWS creds)
-    sudo -E ./log-daemon.sh start app=reranker ./reranker-logs search 30 6
+    # Simple background monitor - no sudo/tmux/screen needed!
+    ./simple-log-monitor.sh start app=reranker ./reranker-logs search 30 6
+}
+
+logfetchstop() {
+    cd ~/mrf/holiday-test-unbxd/ ;
+    ./simple-log-monitor.sh stop
+}
+
+logfetchstatus() {
+    cd ~/mrf/holiday-test-unbxd/ ;
+    ./simple-log-monitor.sh status
+}
+
+logfetchlist() {
+    cd ~/mrf/holiday-test-unbxd/ ;
+    ./simple-log-monitor.sh list
+}
+
+logfetchview() {
+    # View what the monitor is doing
+    cd ~/mrf/holiday-test-unbxd/ ;
+    ./simple-log-monitor.sh tail
 }
 
 
