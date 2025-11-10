@@ -3,7 +3,8 @@ logfetchstart() {
     kubectl set env deployment/reranker --containers="pyreranker" LOG_LEVEL=DEBUG -nsearch
     kubectl set env deployment/reranker --containers="goreranker" LOG_LEVEL=debug -nsearch
     cd ~/mrf/holiday-test-unbxd/ ;
-    sudo ./log-daemon.sh start app=reranker ./reranker-logs 
+    # Use sudo -E to preserve environment variables (kubectl context, AWS creds)
+    sudo -E ./log-daemon.sh start app=reranker ./reranker-logs search 30 6
 }
 
 

@@ -84,6 +84,10 @@ start() {
     echo "  AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:0:20}..." # Show only first 20 chars
     echo ""
     
+    # Create log file with proper permissions
+    touch "$LOG_FILE" 2>/dev/null || sudo touch "$LOG_FILE"
+    chmod 666 "$LOG_FILE" 2>/dev/null || sudo chmod 666 "$LOG_FILE"
+    
     # Use env to explicitly pass environment variables to nohup
     nohup env \
         PATH="$PATH" \
