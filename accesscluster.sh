@@ -24,7 +24,7 @@ elif [ "$REGION" = "ap-southeast-1" ]; then
   SSH_HOST="10.204.19.93"
   SSH_USER="ai-ap-southeast-1-eks"
 else
-  echo "Error: Unsupported region '$REGION'. Supported regions: us-east-1, ap-southeast-1"
+  echo "Error: Unsupported region '$REGION'. Supported regions: use-1d, ap-southeast-1"
   exit 1
 fi
 

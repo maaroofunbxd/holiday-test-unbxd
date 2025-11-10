@@ -1,0 +1,10 @@
+Fetching pod logs
+
+LOG_LEVEL env change to (debug,DEBUG) in (pyreranker,goranker) containers
+validation:
+  go:
+    log.level changed to debug
+  py:
+
+go container requests have prefix received request
+py container requests have text Recieved {} with headers
