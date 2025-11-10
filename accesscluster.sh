@@ -58,3 +58,5 @@ else
 fi
 
 #REGION=use-1d sh accesscluster.sh 'whoami'
+
+#./accesscluster.sh  use-1d 'git fetch origin && git rebase origin/main'

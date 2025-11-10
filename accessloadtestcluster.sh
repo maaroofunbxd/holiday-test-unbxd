@@ -47,3 +47,4 @@ fi
 #ssh ec2-user@usejump.unbxd.io "bash -s" -- < ./accessloadtestcluster.sh "'sh runloadtest.sh'" $HOST
 
 #REGION=use-1d HOST=http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com sh accessloadtestcluster.sh
+#./accessloadtestcluster.sh 'git fetch origin && git rebase origin/main && exit'

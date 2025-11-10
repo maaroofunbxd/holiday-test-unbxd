@@ -15,4 +15,4 @@ k6_run() {
 
 # Then run the load test:
 echo "Running with REGION=$REGION"
-k6_run 100 180s $HOST
+k6_run 150 600s $HOST
