@@ -93,10 +93,10 @@ else
     echo "  ./get-service-host.sh reranker   # Get reranker host"
     echo "  kubectl get pods -n search       # List pods"
     echo ""
-    ssh -t ec2-user@usejump.unbxd.io "ssh -t $SSH_HOST \"sudo su - $SSH_USER -c 'cd ~/mrf/holiday-test-unbxd && $ENV_VARS exec bash'\""
+    ssh -t ec2-user@usejump.unbxd.io "ssh -t $SSH_HOST \"sudo su - $SSH_USER -c 'cd ~/mrf/holiday-test-unbxd && exec bash'\""
   else
     # Run specific command/script
-    ssh -t ec2-user@usejump.unbxd.io "ssh -t $SSH_HOST \"sudo su - $SSH_USER -c 'cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && $ENV_VARS ${CMD}'\""
+    ssh -t ec2-user@usejump.unbxd.io "ssh -t $SSH_HOST \"sudo su - $SSH_USER -c 'cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && ${CMD}'\""
   fi
 fi
 
