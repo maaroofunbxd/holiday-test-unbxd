@@ -136,3 +136,9 @@ kubectl annotate deploy reranker -n search \
   kubernetes.io/change-cause="reset"
 kubectl rollout status deployment reranker -nsearch
 kubectl rollout history deployment reranker -nsearch
+
+kubectl set env deployment/reranker-demo -nsearch --containers="goreranker" METRICS_TAGS='app:reranker-demo,env:prod,region:ap-southeast-1,version:go'
+#for pyreranker have to change command itself
+
+# kubectl patch deployment reranker-demo -nsearch --type='json' \
+#   -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/command", "value": ["/bin/sh", "-c", "python3 /app/reranker/pyreranker.py"]}]'
