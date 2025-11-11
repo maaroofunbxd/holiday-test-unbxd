@@ -45,3 +45,6 @@ sh downloadfroms3.sh ner use-1d
 #ssh ec2-user@usejump.unbxd.io "bash -s" -- < ./accessloadtestcluster.sh "'sh ./process_logs.sh reranker-ap-southeast-1-logs reranker reranker'"
 sh ./process_logs.sh ner-logs ner ner
 rm reranker-ap-southeast-1-logs/*.log
+
+
+alias awss3='AWS_ACCESS_KEY_ID="" AWS_SECRET_ACCESS_KEY="" PYTHONNOUSERSITE=1 aws s3'
