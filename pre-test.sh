@@ -138,6 +138,7 @@ kubectl rollout status deployment reranker -nsearch
 kubectl rollout history deployment reranker -nsearch
 
 kubectl set env deployment/reranker-demo -nsearch --containers="goreranker" METRICS_TAGS='app:reranker-demo,env:prod,region:ap-southeast-1,version:go'
+kubectl set env deployment/reranker-demo -nsearch --containers="goreranker" METRICS_NAMESPACE=reranker-demo
 #for pyreranker have to change command itself
 
 # kubectl patch deployment reranker-demo -nsearch --type='json' \
