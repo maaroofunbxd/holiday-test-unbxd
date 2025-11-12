@@ -114,7 +114,7 @@ kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDI
 
 
 replicas=$(kubectl get deploy reranker -nsearch -o jsonpath='{.spec.replicas}')
-kubectl scale deploy reranker-demo -nsearch --replicas="$replicas"
+kubectl scale deploy reranker-demo -nsearch --replicas="1"
 
 kubectl annotate deploy reranker-demo -n search \
   kubernetes.io/change-cause="increased replicas to $replicas"

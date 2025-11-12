@@ -47,6 +47,10 @@ elif [ "$REGION" = "gcp-us" ]; then
   GCP_PROJECT="unbxdgcp"
   GCP_USER="prod-unbxdgcp-ai02-gke"
   SSH_TYPE="gcloud"
+elif [ "$REGION" = "eu-west-2" ]; then
+  SSH_HOST="10.210.0.92"
+  SSH_USER="ai-prod-eu-west-2-eks"
+  SSH_TYPE="standard"
 else
   echo "Error: Unsupported region '$REGION'. Supported regions: use-1d, ap-southeast-1, gcp-us"
   exit 1
