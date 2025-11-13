@@ -1,8 +1,11 @@
-// 🔥 STRESS TEST CONFIG - Find maximum RPS
+// 🔥 Universal Stress Test - Find maximum RPS for any service
 // Gradually ramps up RPS to find the breaking point
+// Supports: reranker, ner, qcs, and custom services
+// Uses standardized payload format: type (get/post), query_string, payload, sitekey
 import http from 'k6/http';
 import { SharedArray } from 'k6/data';
 import { check, sleep } from 'k6';
+import { getUrlBuilder } from './service-configs.js';
 
 // ✅ Get host from environment variable or use default
 const HOST = __ENV.HOST || 'http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com';
@@ -12,6 +15,13 @@ const inputFiles = (__ENV.INPUT_FILES || 'extracted_payloads_py.jsonl').split(',
 
 // ✅ Get base path for files
 const BASE_PATH = __ENV.BASE_PATH !== undefined ? __ENV.BASE_PATH : '.';
+
+// 🔧 Service configuration - Can be overridden via SERVICE env var
+const SERVICE = __ENV.SERVICE || 'reranker';
+const URL_BUILDER = getUrlBuilder(SERVICE);
+
+// Log configuration at startup
+console.log(`🔧 Service Type: ${SERVICE}`);
 
 // ✅ Stress test configuration - can be overridden via env vars
 const START_RPS = parseInt(__ENV.START_RPS || '10');      // Starting RPS
@@ -76,10 +86,12 @@ export const options = {
 export default function () {
   // Randomly select a payload
   const randomPayload = payloads[Math.floor(Math.random() * payloads.length)];
-  const sitekey = randomPayload.sitekey;
+
+  // Build request configuration using the URL builder
+  const requestConfig = URL_BUILDER(HOST, randomPayload);
   
-  if (!sitekey) {
-    console.warn('⚠️  No sitekey found in payload');
+  if (!requestConfig) {
+    console.warn('⚠️  Could not build request config for payload');
     return;
   }
 
@@ -88,26 +100,17 @@ export default function () {
     timeout: '30s',  // Prevent hanging requests
   };
 
+  // Execute request based on method
   let response;
-
-  // Determine request type and route accordingly
-  if (randomPayload.query_string) {
-    // Query string request - GET /v1.0/sites/.../recommend?...
-    let url = `${HOST}/v1.0/sites/${sitekey}/recommend`;
-    const queryString = randomPayload.query_string;
-    url += queryString.startsWith('?') ? queryString : '?' + queryString;
-    response = http.get(url, params);
-  } else if (randomPayload.payload) {
-    // JSON payload request
-    if (randomPayload.payload.rankingContext !== undefined) {
-      // With rankingContext - POST /v1.0/sites/.../rerank
-      const url = `${HOST}/v1.0/sites/${sitekey}/rerank`;
-      response = http.post(url, JSON.stringify(randomPayload.payload), params);
-    } else {
-      // Without rankingContext - POST /v2.0/sites/.../recommend
-      const url = `${HOST}/v2.0/sites/${sitekey}/recommend`;
-      response = http.post(url, JSON.stringify(randomPayload.payload), params);
-    }
+  if (requestConfig.method === 'GET') {
+    response = http.get(requestConfig.url, params);
+  } else if (requestConfig.method === 'POST') {
+    response = http.post(requestConfig.url, requestConfig.body, params);
+  } else if (requestConfig.method === 'PUT') {
+    response = http.put(requestConfig.url, requestConfig.body, params);
+  } else {
+    console.warn(`⚠️  Unsupported method: ${requestConfig.method}`);
+    return;
   }
 
   // Check response quality

@@ -1,6 +1,8 @@
-//cat > reranker-load-test.js
+// Universal Load Test - Works with any service (reranker, ner, qcs, etc.)
+// Uses standardized payload format: type (get/post), query_string, payload, sitekey
 import http from 'k6/http';
 import { SharedArray } from 'k6/data';
+import { getUrlBuilder } from './service-configs.js';
 
 // ✅ Get host from environment variable or use default
 const HOST = __ENV.HOST || 'http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com';
@@ -12,6 +14,13 @@ const inputFiles = (__ENV.INPUT_FILES || 'extracted_payloads_py.jsonl').split(',
 // ✅ Get base path for files (relative to cwd, not script location)
 // Default is '.' (current directory) - input files are relative to pwd
 const BASE_PATH = __ENV.BASE_PATH !== undefined ? __ENV.BASE_PATH : '.';
+
+// 🔧 Service configuration - Can be overridden via SERVICE env var
+const SERVICE = __ENV.SERVICE || 'reranker';
+const URL_BUILDER = getUrlBuilder(SERVICE);
+
+// Log configuration at startup
+console.log(`🔧 Service Type: ${SERVICE}`);
 
 // ✅ Get RPS from environment variable or use default
 const RPS = parseInt(__ENV.RPS || '10');
@@ -74,11 +83,11 @@ export default function () {
   // Randomly select a payload
   const randomPayload = payloads[Math.floor(Math.random() * payloads.length)];
 
-  // Extract sitekey from the JSON entry itself
-  const sitekey = randomPayload.sitekey;
+  // Build request configuration using the URL builder
+  const requestConfig = URL_BUILDER(HOST, randomPayload);
   
-  if (!sitekey) {
-    console.warn('No sitekey found in payload');
+  if (!requestConfig) {
+    console.warn('⚠️  Could not build request config for payload');
     return;
   }
 
@@ -86,26 +95,15 @@ export default function () {
     headers: { 'Content-Type': 'application/json' },
   };
 
-  // Determine request type and route accordingly
-  if (randomPayload.query_string) {
-    // Query string request - GET /v1.0/sites/.../recommend?...
-    let url = `${HOST}/v1.0/sites/${sitekey}/recommend`;
-    
-    // Append the query string (ensure it starts with ?)
-    const queryString = randomPayload.query_string;
-    url += queryString.startsWith('?') ? queryString : '?' + queryString;
-    
-    http.get(url, params);
-  } else if (randomPayload.payload) {
-    // JSON payload request
-    if (randomPayload.payload.rankingContext !== undefined) {
-      // With rankingContext - POST /v1.0/sites/.../rerank
-      const url = `${HOST}/v1.0/sites/${sitekey}/rerank`;
-      http.post(url, JSON.stringify(randomPayload.payload), params);
-    } else {
-      // Without rankingContext - POST /v2.0/sites/.../recommend
-      const url = `${HOST}/v2.0/sites/${sitekey}/recommend`;
-      http.post(url, JSON.stringify(randomPayload.payload), params);
-    }
+  // Execute request based on method
+  if (requestConfig.method === 'GET') {
+    http.get(requestConfig.url, params);
+  } else if (requestConfig.method === 'POST') {
+    http.post(requestConfig.url, requestConfig.body, params);
+  } else if (requestConfig.method === 'PUT') {
+    http.put(requestConfig.url, requestConfig.body, params);
+  } else {
+    console.warn(`⚠️  Unsupported method: ${requestConfig.method}`);
+    return;
   }
 }
