@@ -35,12 +35,41 @@ def query_params_to_string(query_params):
     return '?' + query_string if query_string else ""
 
 
+def api_to_path(api, sitekey, payload=None):
+    """Convert API field to path field."""
+    if not api or not sitekey:
+        return None
+    
+    # Reranker API mappings
+    api_mappings = {
+        "recommend": f"/v1.0/sites/{sitekey}/recommend",
+        "recommend_v2": f"/v2.0/sites/{sitekey}/recommend",
+        "rerank": f"/v1.0/sites/{sitekey}/rerank",
+    }
+    
+    # Check if we have a direct mapping
+    if api in api_mappings:
+        return api_mappings[api]
+    
+    # Check for rankingContext to determine rerank endpoint
+    if payload and isinstance(payload, dict):
+        if payload.get("rankingContext") is not None:
+            return f"/v1.0/sites/{sitekey}/rerank"
+    
+    # Default to recommend_v2 for unknown APIs
+    return f"/v2.0/sites/{sitekey}/recommend"
+
+
 def migrate_entry(entry):
     """Migrate a single entry to new format."""
     old_type = entry.get("type", "")
+    sitekey = entry.get("sitekey", "")
     
     # Already in new format
     if old_type in ["get", "post"]:
+        # Still add path if missing
+        if "path" not in entry and "api" in entry:
+            entry["path"] = api_to_path(entry.get("api"), sitekey, entry.get("payload"))
         return entry
     
     # Handle entries with NO type field (old Go reranker logs)
@@ -48,8 +77,14 @@ def migrate_entry(entry):
         # Infer type from content
         if "payload" in entry:
             entry["type"] = "post"
+            # Add path from api field
+            if "api" in entry and "path" not in entry:
+                entry["path"] = api_to_path(entry.get("api"), sitekey, entry.get("payload"))
         elif "query_string" in entry:
             entry["type"] = "get"
+            # Add path if available
+            if "api" in entry and "path" not in entry:
+                entry["path"] = api_to_path(entry.get("api"), sitekey)
         else:
             print(f"⚠️  Warning: Cannot infer type for entry (no type, payload, or query_string): {entry.get('sitekey', 'unknown')}")
         return entry
@@ -59,9 +94,13 @@ def migrate_entry(entry):
         if "query_string" in entry:
             # Already has query_string, just update type
             entry["type"] = "get"
+            if "api" in entry and "path" not in entry:
+                entry["path"] = api_to_path(entry.get("api"), sitekey)
         elif "payload" in entry:
             # POST request
             entry["type"] = "post"
+            if "api" in entry and "path" not in entry:
+                entry["path"] = api_to_path(entry.get("api"), sitekey, entry.get("payload"))
         else:
             print(f"⚠️  Warning: Unknown reranker entry format: {entry}")
         return entry
