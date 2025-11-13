@@ -1,2 +1,2 @@
-./clustermonitor.sh
+./clustermonitor.sh 500
 

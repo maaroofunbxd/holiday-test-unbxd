@@ -4,4 +4,4 @@ monitorpods() {
     ./monitorrerankerpods.sh $STATS_DURATION $NAMESPACE
 }
 
-monitorpods 660 search;
+monitorpods $1 search;
