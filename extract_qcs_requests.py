@@ -3,7 +3,7 @@
 import json
 import re
 import argparse
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse
 
 
 def extract_qcs_request(line):
@@ -31,23 +31,17 @@ def extract_qcs_request(line):
     # Extract endpoint (e.g., "category")
     endpoint = path_parts[-1] if len(path_parts) > 4 else None
     
-    # Parse query parameters
-    query_params = parse_qs(parsed.query)
-    
-    # Convert query params from lists to single values (parse_qs returns lists)
-    query_dict = {}
-    for key, value in query_params.items():
-        # Decode URL-encoded values and take the first value if it's a list
-        decoded_value = unquote(value[0]) if value else None
-        query_dict[key] = decoded_value
+    # Extract raw query string (keep as-is for k6 to use directly)
+    query_string = parsed.query if parsed.query else ""
+    if query_string and not query_string.startswith('?'):
+        query_string = '?' + query_string
     
     entry = {
-        "type": "qcs_get",
+        "type": "get",
         "sitekey": sitekey,
         "endpoint": endpoint,
         "path": parsed.path,
-        "query_params": query_dict,
-        "full_url": full_path,
+        "query_string": query_string,  # Raw query string to append to URL
         "status_code": int(status_code)
     }
     

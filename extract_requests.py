@@ -4,7 +4,6 @@ import json
 import re
 import argparse
 import ast
-from urllib.parse import parse_qs
 
 
 def debug_py(line):
@@ -43,7 +42,7 @@ def debug_py(line):
             # Parse as Python dictionary
             payload_json = ast.literal_eval(payload_str)
             entry = {
-                "type": "with_headers",
+                "type": "post",
                 "sitekey": sitekey,
                 "payload": payload_json,
                 "headers": headers_json,
@@ -51,7 +50,7 @@ def debug_py(line):
         else:
             # Keep as raw query string - don't parse into payload
             entry = {
-                "type": "with_headers",
+                "type": "get",
                 "sitekey": sitekey,
                 "query_string": payload_str,  # Raw query string to append to URL
                 "headers": headers_json,
@@ -81,6 +80,7 @@ def debug_go(line, regex_pattern, require_payload=True, require_sitekey=True):
             return None
 
         entry = {
+            "type": "post",
             "x-request-id": data.get("x-request-id"),
             "api": data.get("api"),
             "sitekey": data.get("sitekey"),
