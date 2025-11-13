@@ -43,6 +43,17 @@ def migrate_entry(entry):
     if old_type in ["get", "post"]:
         return entry
     
+    # Handle entries with NO type field (old Go reranker logs)
+    if not old_type:
+        # Infer type from content
+        if "payload" in entry:
+            entry["type"] = "post"
+        elif "query_string" in entry:
+            entry["type"] = "get"
+        else:
+            print(f"⚠️  Warning: Cannot infer type for entry (no type, payload, or query_string): {entry.get('sitekey', 'unknown')}")
+        return entry
+    
     # Reranker: "with_headers" -> "get" or "post"
     if old_type == "with_headers":
         if "query_string" in entry:
