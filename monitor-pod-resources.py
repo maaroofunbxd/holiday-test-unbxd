@@ -242,7 +242,7 @@ def get_pod_metrics(limits_map, label_selector, show_stats=False, namespace=None
     
     if result.returncode != 0:
         print(f"Error running kubectl top: {result.stderr}")
-        return [], set(), timestamp
+        return [], set(), [], timestamp
     
     metrics = []
     current_containers = set()

@@ -55,6 +55,7 @@ helm upgrade ner-demo ./helm/ner -nsearch \
   --set deployment.env.ELASTIC_APM_SERVICE_NAME=ner-demo \
   --set service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-name"=ner-demo-lb \
   --set service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-additional-resource-tags"="Environment=demo,Service=ner-demo" \
+  --set deployment.env.SERVICE=ner-demo \
   --no-hooks
 
 #helm uninstall ner-demo -nsearch
