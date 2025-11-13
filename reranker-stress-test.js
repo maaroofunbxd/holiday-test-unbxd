@@ -63,7 +63,7 @@ export const options = {
         // Ramp down gracefully
         { duration: '1m', target: 0 },
       ],
-      gracefulRampDown: '30s',
+      gracefulStop: '30s',
     },
   },
   thresholds: {
