@@ -16,12 +16,8 @@ const inputFiles = (__ENV.INPUT_FILES || 'extracted_payloads_py.jsonl').split(',
 // ✅ Get base path for files
 const BASE_PATH = __ENV.BASE_PATH !== undefined ? __ENV.BASE_PATH : '.';
 
-// 🔧 Service configuration - Can be overridden via SERVICE env var
-const SERVICE = __ENV.SERVICE || 'reranker';
-const URL_BUILDER = getUrlBuilder(SERVICE);
-
-// Log configuration at startup
-console.log(`🔧 Service Type: ${SERVICE}`);
+// 🔧 Generic URL builder - works with any service
+const URL_BUILDER = getUrlBuilder();
 
 // ✅ Stress test configuration - can be overridden via env vars
 const START_RPS = parseInt(__ENV.START_RPS || '10');      // Starting RPS

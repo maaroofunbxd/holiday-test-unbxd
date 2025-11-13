@@ -15,12 +15,8 @@ const inputFiles = (__ENV.INPUT_FILES || 'extracted_payloads_py.jsonl').split(',
 // Default is '.' (current directory) - input files are relative to pwd
 const BASE_PATH = __ENV.BASE_PATH !== undefined ? __ENV.BASE_PATH : '.';
 
-// 🔧 Service configuration - Can be overridden via SERVICE env var
-const SERVICE = __ENV.SERVICE || 'reranker';
-const URL_BUILDER = getUrlBuilder(SERVICE);
-
-// Log configuration at startup
-console.log(`🔧 Service Type: ${SERVICE}`);
+// 🔧 Generic URL builder - works with any service
+const URL_BUILDER = getUrlBuilder();
 
 // ✅ Get RPS from environment variable or use default
 const RPS = parseInt(__ENV.RPS || '10');
