@@ -1,2 +1,2 @@
-./clustermonitor.sh 660
+./clustermonitor.sh ner-demo 660 search
 

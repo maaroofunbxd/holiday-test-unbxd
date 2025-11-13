@@ -1,7 +1,8 @@
 monitorpods() {
-    STATS_DURATION=$1
-    NAMESPACE=$2
-    ./monitorrerankerpods.sh $STATS_DURATION $NAMESPACE
+    SERVICE=$1
+    STATS_DURATION=$2
+    NAMESPACE=$3
+    ./monitorrerankerpods.sh $SERVICE $STATS_DURATION $NAMESPACE
 }
 
-monitorpods $1 search;
+monitorpods $1 $2 $3;
