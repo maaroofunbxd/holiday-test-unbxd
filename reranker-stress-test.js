@@ -131,12 +131,21 @@ export function handleSummary(data) {
   }
   
   // Response times
-  if (metrics.http_req_duration) {
+  if (metrics.http_req_duration && metrics.http_req_duration.values) {
     console.log(`⏱️  Response times:`);
-    console.log(`   - p50: ${metrics.http_req_duration.values['p(50)'].toFixed(2)}ms`);
-    console.log(`   - p95: ${metrics.http_req_duration.values['p(95)'].toFixed(2)}ms`);
-    console.log(`   - p99: ${metrics.http_req_duration.values['p(99)'].toFixed(2)}ms`);
-    console.log(`   - max: ${metrics.http_req_duration.values.max.toFixed(2)}ms`);
+    const p50 = metrics.http_req_duration.values['p(50)'];
+    const p95 = metrics.http_req_duration.values['p(95)'];
+    const p99 = metrics.http_req_duration.values['p(99)'];
+    const max = metrics.http_req_duration.values.max;
+    
+    if (p50 !== undefined && p50 !== null) {
+      console.log(`   - p50: ${p50.toFixed(2)}ms`);
+      console.log(`   - p95: ${p95.toFixed(2)}ms`);
+      console.log(`   - p99: ${p99.toFixed(2)}ms`);
+      console.log(`   - max: ${max.toFixed(2)}ms`);
+    } else {
+      console.log(`   - No response time data (no successful requests)`);
+    }
   }
   
   // Error rate
