@@ -144,7 +144,10 @@ echo "   - ${TIME_IST}stress-test-summary.json"
 echo ""
 
 # Add to S3 upload queue if script exists
-if [ -f ".s3_upload_queue" ] && [ -f "s3_upload.sh" ]; then
+if [ -f "s3_upload.sh" ]; then
+    # Create upload queue file if it doesn't exist
+    touch .s3_upload_queue
+    
     echo "$(pwd)/${TIME_IST}stress-test-raw.json" >> .s3_upload_queue
     echo "$(pwd)/${TIME_IST}stress-test-summary.json" >> .s3_upload_queue
     echo "📤 Output files added to S3 upload queue"
