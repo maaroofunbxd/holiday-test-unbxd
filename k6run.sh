@@ -58,6 +58,11 @@ if [ -f ".s3_upload_queue" ] && [ -f "s3_upload.sh" ]; then
     echo "$(pwd)/${time_ist}raw-data.json" >> .s3_upload_queue
     echo "$(pwd)/${time_ist}summary.json" >> .s3_upload_queue
     echo "📝 k6 output files added to upload queue"
+    echo ""
+    echo "📤 Full S3 Paths:"
+    echo "   s3://unbxd-des/rerankerloadtest/${time_ist}raw-data.json"
+    echo "   s3://unbxd-des/rerankerloadtest/${time_ist}summary.json"
+    echo ""
     source s3_upload.sh;
     run_s3_upload ~/mrf/loadtest/holiday-test-unbxd/.s3_upload_queue
 fi

@@ -50,7 +50,9 @@ upload_file_to_s3() {
     fi
     
     if aws s3 cp "$file_path" "$S3_BUCKET" $AWS_OPTS 2>&1; then
-        echo "  ✅ $filename"
+        # Show full S3 path instead of just filename
+        local s3_path="${S3_BUCKET}${filename}"
+        echo "  ✅ ${s3_path}"
         return 0  # Success
     else
         echo "  ❌ Failed: $filename"

@@ -595,6 +595,8 @@ def save_stats_to_csv(metrics, output_file):
     
     # Write output file paths to s3_upload_queue for bash script to read
     queue_file = '.s3_upload_queue'
+    s3_bucket = "s3://unbxd-des/rerankerloadtest/"  # Default S3 bucket
+    
     try:
         with open(queue_file, 'a') as f:
             for file_path in output_files:
@@ -602,6 +604,11 @@ def save_stats_to_csv(metrics, output_file):
                 abs_path = os.path.abspath(file_path)
                 f.write(f"{abs_path}\n")
         print(f"\033[96m📝 Output files added to upload queue for S3\033[0m")
+        print(f"\033[96m📤 S3 Paths:\033[0m")
+        for file_path in output_files:
+            filename = os.path.basename(file_path)
+            s3_path = f"{s3_bucket}{filename}"
+            print(f"   {s3_path}")
     except Exception as e:
         print(f"\033[93m⚠ Warning: Could not write to upload queue: {e}\033[0m")
         print(f"\033[93m  Files saved locally: {', '.join(output_files)}\033[0m")
