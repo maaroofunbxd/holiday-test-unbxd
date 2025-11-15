@@ -51,7 +51,7 @@ get_algo_labels() {
         reranker-demo)
             echo "ranking,embeddings"
             ;;
-        ner)
+        ner-demo)
             echo "ner"
             ;;
         qcs)
