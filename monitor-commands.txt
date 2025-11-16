@@ -1,2 +1,0 @@
-./clustermonitor.sh ner-demo 550 search
-

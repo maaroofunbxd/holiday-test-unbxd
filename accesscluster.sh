@@ -11,7 +11,7 @@
 # Examples:
 #   ./accesscluster.sh                           # Interactive mode (ap-southeast-1)
 #   ./accesscluster.sh use-1d "./clustermonitor.sh"  # Run with specific region
-#   ./accesscluster.sh use-1d @commands.txt      # Read commands from file with region
+#   ./accesscluster.sh use-1d @podcluster-commands.txt      # Read commands from file with region
 #   ./accesscluster.sh gcp-us "aws s3 ls s3://unbxd-des/"  # Run on GCP with AWS CLI
 #   ./accesscluster.sh ap-southeast-1 "kubectl get pods -n search"  # Run kubectl command
 #source ../codesnippet/.env && ./accesscluster.sh gcp-us

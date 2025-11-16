@@ -6,8 +6,8 @@
 # Examples:
 #   ./accessloadtestcluster.sh                   # Interactive mode
 #   HOST=http://host.com ./accessloadtestcluster.sh "sh runloadtest.sh"  # Run with HOST
-#   HOST=http://host.com ./accessloadtestcluster.sh @commands.txt  # Read commands from file
-#   REGION=use-1d HOST=http://host.com ./accessloadtestcluster.sh @commands.txt  # Specify region and host
+#   HOST=http://host.com ./accessloadtestcluster.sh @loadtestcluster-commands.txt  # Read commands from file
+#   REGION=use-1d HOST=http://host.com ./accessloadtestcluster.sh @loadtestcluster-commands.txt  # Specify region and host
 
 REGION=${REGION:-ap-southeast-1}
 HOST=${HOST:-http://internal-aacb4a1ef44964e9a8d7979f74de2ea7-218368305.ap-southeast-1.elb.amazonaws.com}
@@ -49,4 +49,4 @@ fi
 #REGION=use-1d HOST=http://internal-a33ac7ecf86484bdb9a6a550a45a3f8d-2136975334.us-east-1.elb.amazonaws.com sh accessloadtestcluster.sh
 #./accessloadtestcluster.sh 'git fetch origin && git rebase origin/main && exit'
 
-#HOST=http://$(./accesscluster.sh use-1d "./get-service-host.sh ner-demo" 2>&1 | grep -oE '[a-z0-9-]+\.[a-z0-9-]+\.elb\.amazonaws\.com' | head -1) REGION=use-1d ./accessloadtestcluster.sh @commands.txt
+#HOST=http://$(./accesscluster.sh use-1d "./get-service-host.sh ner-demo" 2>&1 | grep -oE '[a-z0-9-]+\.[a-z0-9-]+\.elb\.amazonaws\.com' | head -1) REGION=use-1d ./accessloadtestcluster.sh @loadtestcluster-commands.txt
