@@ -158,7 +158,7 @@ if [ -f "s3_upload.sh" ]; then
     echo ""
     
     source s3_upload.sh
-    run_s3_upload ~/mrf/loadtest/holiday-test-unbxd/.s3_upload_queue
+    run_s3_upload "$(pwd)/.s3_upload_queue"
 fi
 
 # ============================================================================
