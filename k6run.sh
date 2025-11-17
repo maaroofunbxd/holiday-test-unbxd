@@ -64,7 +64,7 @@ if [ -f ".s3_upload_queue" ] && [ -f "s3_upload.sh" ]; then
     echo "   s3://unbxd-des/rerankerloadtest/${time_ist}summary.json"
     echo ""
     source s3_upload.sh;
-    run_s3_upload ~/mrf/loadtest/holiday-test-unbxd/.s3_upload_queue
+    run_s3_upload "$(pwd)/.s3_upload_queue"
 fi
 
 #docker run --rm -v `pwd`:/data -i grafana/k6 run - < reranker-load-test-recs.js

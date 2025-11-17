@@ -1,2 +1,2 @@
-./clustermonitor.sh ner-demo 600 search
+./clustermonitor.sh reranker-demo 600 search
 
