@@ -1,2 +1,2 @@
-./clustermonitor.sh reranker-demo 600 search
+./clustermonitor.sh qcs-demo 600 search
 
