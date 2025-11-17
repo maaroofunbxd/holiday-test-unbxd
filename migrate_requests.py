@@ -19,6 +19,7 @@ import json
 import argparse
 from pathlib import Path
 from urllib.parse import urlencode
+from service_endpoints import get_reranker_path
 
 
 def query_params_to_string(query_params):
@@ -40,24 +41,8 @@ def api_to_path(api, sitekey, payload=None):
     if not api or not sitekey:
         return None
     
-    # Reranker API mappings
-    api_mappings = {
-        "recommend": f"/v1.0/sites/{sitekey}/recommend",
-        "recommend_v2": f"/v2.0/sites/{sitekey}/recommend",
-        "rerank": f"/v1.0/sites/{sitekey}/rerank",
-    }
-    
-    # Check if we have a direct mapping
-    if api in api_mappings:
-        return api_mappings[api]
-    
-    # Check for rankingContext to determine rerank endpoint
-    if payload and isinstance(payload, dict):
-        if payload.get("rankingContext") is not None:
-            return f"/v1.0/sites/{sitekey}/rerank"
-    
-    # Default to recommend_v2 for unknown APIs
-    return f"/v2.0/sites/{sitekey}/recommend"
+    # Use centralized endpoint registry
+    return get_reranker_path(api, sitekey, payload)
 
 
 def migrate_entry(entry):

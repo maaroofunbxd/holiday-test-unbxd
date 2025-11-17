@@ -4,9 +4,19 @@ import json
 import re
 import argparse
 import ast
+from service_endpoints import get_reranker_path
 
 
-def debug_py(line):
+def api_to_path(api, sitekey, payload=None):
+    """Convert API field to path field for reranker endpoints."""
+    if not api or not sitekey:
+        return None
+    
+    # Use centralized endpoint registry
+    return get_reranker_path(api, sitekey, payload)
+
+
+def debug_py(line, default_api="recommend_v2"):
     """Extract payload and headers from Python service logs."""
     line_strip = line.strip()
     
@@ -41,17 +51,32 @@ def debug_py(line):
         if payload_str.startswith('{'):
             # Parse as Python dictionary
             payload_json = ast.literal_eval(payload_str)
+            
+            # Infer API from payload content
+            api = default_api
+            if payload_json.get("rankingContext") is not None:
+                api = "rerank"
+            
+            path = api_to_path(api, sitekey, payload_json)
+            
             entry = {
                 "type": "post",
                 "sitekey": sitekey,
+                "api": api,
+                "path": path,
                 "payload": payload_json,
                 "headers": headers_json,
             }
         else:
             # Keep as raw query string - don't parse into payload
+            # For GET requests, use default API
+            path = api_to_path(default_api, sitekey)
+            
             entry = {
                 "type": "get",
                 "sitekey": sitekey,
+                "api": default_api,
+                "path": path,
                 "query_string": payload_str,  # Raw query string to append to URL
                 "headers": headers_json,
             }
@@ -79,13 +104,20 @@ def debug_go(line, regex_pattern, require_payload=True, require_sitekey=True):
         if require_sitekey and "sitekey" not in data:
             return None
 
+        # Generate path from api and sitekey
+        api = data.get("api")
+        sitekey = data.get("sitekey")
+        payload = data.get("payload")
+        path = api_to_path(api, sitekey, payload)
+
         entry = {
             "type": "post",
             "x-request-id": data.get("x-request-id"),
-            "api": data.get("api"),
-            "sitekey": data.get("sitekey"),
+            "api": api,
+            "sitekey": sitekey,
             "platform": data.get("platform"),
-            "payload": data.get("payload"),
+            "path": path,
+            "payload": payload,
         }
         return entry
 
@@ -99,6 +131,7 @@ def extract_requests(
     regex_pattern,
     require_payload=True,
     require_sitekey=True,
+    default_api="recommend_v2",
 ):
     """Extract and filter requests from log files."""
     with open(input_file, "r") as infile, open(output_file, "w") as outfile:
@@ -112,7 +145,7 @@ def extract_requests(
                     line, regex_pattern, require_payload, require_sitekey
                 )
             elif "with headers" in line_lower and "recieved" in line_lower:
-                entry = debug_py(line)
+                entry = debug_py(line, default_api)
 
             if entry:
                 # Write entry as JSON to preserve sitekey and metadata
@@ -148,6 +181,11 @@ if __name__ == "__main__":
         "--no-sitekey", action="store_true",
         help="Do not require 'sitekey' field to exist"
     )
+    parser.add_argument(
+        "--default-api",
+        default="recommend_v2",
+        help="Default API endpoint for Python logs (default: recommend_v2). Options: recommend, recommend_v2, rerank"
+    )
 
     args = parser.parse_args()
 
@@ -157,6 +195,7 @@ if __name__ == "__main__":
         regex_pattern=args.regex,
         require_payload=not args.no_payload,
         require_sitekey=not args.no_sitekey,
+        default_api=args.default_api,
     )
 
     print(f"✅ Extracted requests written to {args.output}")

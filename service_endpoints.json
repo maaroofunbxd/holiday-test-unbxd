@@ -1,0 +1,125 @@
+{
+  "reranker": {
+    "endpoints": {
+      "rerank": {
+        "path": "/v1.0/sites/{siteKey}/rerank",
+        "method": "POST",
+        "version": "v1.0",
+        "payload_indicators": ["rankingContext"]
+      },
+      "recommend_v2": {
+        "path": "/v2.0/sites/{siteKey}/recommend",
+        "method": "POST",
+        "version": "v2.0"
+      },
+      "recommend": {
+        "path": "/v1.0/sites/{siteKey}/recommend",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "affinity_facet": {
+        "path": "/v1.0/sites/{sitekey}/affinity/facet",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "events_post": {
+        "path": "/v1.0/sites/{siteKey}/events",
+        "method": "POST",
+        "version": "v1.0"
+      },
+      "events": {
+        "path": "/v1.0/sites/{siteKey}/events",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "sessions": {
+        "path": "/v1.0/sites/{siteKey}/sessions",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "suggestions": {
+        "path": "/v1.0/sites/{site}/suggestions",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "suggestions_blacklist": {
+        "path": "/v1.0/sites/{site}/suggestions/blacklist",
+        "method": "POST",
+        "version": "v1.0"
+      },
+      "suggestions_put": {
+        "path": "/v1.0/sites/{site}/suggestions",
+        "method": "PUT",
+        "version": "v1.0"
+      },
+      "suggestions_delete": {
+        "path": "/v1.0/sites/{site}/suggestions",
+        "method": "DELETE",
+        "version": "v1.0"
+      },
+      "recommend_chat_get": {
+        "path": "/v1.0/verticals/{vertical}/recommend/chat",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "recommend_chat": {
+        "path": "/v1.0/verticals/{vertical}/recommend/chat",
+        "method": "POST",
+        "version": "v1.0"
+      },
+      "tag": {
+        "path": "/v1.0/verticals/{vertical}/tag",
+        "method": "POST",
+        "version": "v1.0"
+      },
+      "cache_post": {
+        "path": "/v1.0/datasets/{dataset}/cache",
+        "method": "POST",
+        "version": "v1.0"
+      },
+      "cache": {
+        "path": "/v1.0/datasets/{dataset}/cache",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "datasets_post": {
+        "path": "/v1.0/datasets/{dataset}",
+        "method": "POST",
+        "version": "v1.0"
+      },
+      "datasets": {
+        "path": "/v1.0/datasets/{dataset}",
+        "method": "GET",
+        "version": "v1.0"
+      }
+    },
+    "default_endpoints": {
+      "POST": "recommend_v2",
+      "GET": "recommend"
+    }
+  },
+  "ner": {
+    "endpoints": {
+      "tag": {
+        "path": "/v1.0/sites/{sitekey}/tag",
+        "method": "GET",
+        "version": "v1.0"
+      },
+      "dimensions": {
+        "path": "/api/v0/sites/{sitekey}/dimensions",
+        "method": "GET",
+        "version": "v0"
+      }
+    }
+  },
+  "qcs": {
+    "endpoints": {
+      "category": {
+        "path": "/v2/sites/{sitekey}/category",
+        "method": "GET",
+        "version": "v2"
+      }
+    }
+  }
+}
+

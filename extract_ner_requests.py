@@ -4,6 +4,7 @@ import json
 import re
 import argparse
 from urllib.parse import urlparse
+from service_endpoints import get_ner_path
 
 
 def extract_ner_request(line):

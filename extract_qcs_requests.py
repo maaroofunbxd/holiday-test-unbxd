@@ -4,6 +4,7 @@ import json
 import re
 import argparse
 from urllib.parse import urlparse
+from service_endpoints import get_qcs_path
 
 
 def extract_qcs_request(line):
