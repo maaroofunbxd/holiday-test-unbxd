@@ -7,6 +7,7 @@ Copies configuration from prod deployment to demo deployment.
 import subprocess
 import json
 import sys
+import os
 
 
 # Configuration
@@ -16,7 +17,7 @@ namespace = "ai"
 demo_deployment = f"{deployment_name}-demo"
 
 
-def run_command(cmd, capture_output=True, check=True):
+def run_command(cmd, capture_output=True, check=True, input_data=None):
     """Execute a shell command and return the result."""
     print(f"Running: {cmd}")
     try:
@@ -25,10 +26,18 @@ def run_command(cmd, capture_output=True, check=True):
             shell=True,
             capture_output=capture_output,
             text=True,
-            check=check
+            check=check,
+            input=input_data
         )
-    except Exception as e:
-        print(e)        
+        if result.stderr and result.stderr.strip():
+            print(f"STDERR: {result.stderr}")
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: Command failed with exit code {e.returncode}")
+        if e.stderr:
+            print(f"STDERR: {e.stderr}")
+        if e.stdout:
+            print(f"STDOUT: {e.stdout}")
+        raise
 
     if capture_output:
         return result.stdout.strip()
@@ -40,6 +49,13 @@ def get_jsonpath(deploy, ns, container, path):
     jsonpath = f"{{.spec.template.spec.containers[?(@.name=='{container}')].{path}}}"
     cmd = f'kubectl get deploy {deploy} -n {ns} -o jsonpath="{jsonpath}"'
     return run_command(cmd)
+
+
+def kubectl_patch(deploy, ns, patch_dict):
+    """Apply a patch to a deployment using stdin to avoid quoting issues."""
+    patch_json = json.dumps(patch_dict)
+    cmd = f"kubectl patch deploy {deploy} -n {ns} --type strategic --patch-file /dev/stdin"
+    return run_command(cmd, input_data=patch_json)
 
 
 def main():
@@ -82,10 +98,7 @@ def main():
             }
         }
     }
-    with open("patch.json", "w") as f:
-        json.dump(patch, f)
-    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} --patch-file patch.json"
-    run_command(cmd)
+    kubectl_patch(demo_deployment, namespace, patch)
     
     # Verify imagePullPolicy
     new_policy = get_jsonpath(demo_deployment, namespace, container_name, "imagePullPolicy")
@@ -142,11 +155,7 @@ def main():
             }
         }
     }
-    with open("patch.json", "w") as f:
-        json.dump(patch, f)
-
-    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} --patch-file patch.json"
-    run_command(cmd)
+    kubectl_patch(demo_deployment, namespace, patch)
     
     # Verify updated values
     print("\n---- Updated target values ----")
