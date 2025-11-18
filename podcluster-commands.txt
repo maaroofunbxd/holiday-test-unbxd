@@ -1,2 +1,15 @@
-./clustermonitor.sh qcs-demo 600 search
+deploymentname="qcs"
+containername="qcs"
+namespace="ai"
+#TO GET the prod logs
+kubectl set env deploy/$deploymentname -n$namespace --list --resolve
+kubectl set env deployment/$deploymentname -n$namespace --containers=$containername LOG_LEVEL=DEBUG
+kubectl annotate deploy $deploymentname -n $namespace \
+  kubernetes.io/change-cause="$containername debugging "
 
+kubectl rollout status deployment $deploymentname -n$namespace
+kubectl rollout history deployment $deploymentname -n$namespace
+
+
+kubectl get deploy $deploymentname-demo -n$namespace -oyaml > demo.yaml
+kubectl get deploy $deploymentname -n$namespace -oyaml > prod.yaml
