@@ -1,14 +1,3 @@
-#TO GET the prod logs
-kubectl set env deploy/reranker -nsearch --list --resolve
-kubectl set env deployment/reranker -nsearch --containers="goreranker" LOG_LEVEL=debug
-kubectl annotate deploy reranker -n search \
-  kubernetes.io/change-cause="goreranker debugging"
-
-kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL=DEBUG
-kubectl annotate deploy reranker -n search \
-  kubernetes.io/change-cause="pyreranker debugging"
-kubectl rollout status deployment reranker -nsearch
-kubectl rollout history deployment reranker -nsearch
 
 
 #sudo  ./log-daemon.sh start app=reranker ./reranker-gcp-us-logs search 30 6
@@ -33,59 +22,6 @@ kubectl patch configmap reranker-demo-envoy -nsearch --type merge -p "$(cat tmp.
 # cat > democonfigmap.yaml <<EOF
 # EOF
 #kubectl apply -f democonfigmap.yaml
-
-kubectl get deploy reranker-demo -nsearch -oyaml > demo.yaml
-kubectl get deploy reranker -nsearch -oyaml > prod.yaml
-#in local
-dyff between demo.yaml prod.yaml
-
-
-SOURCE_IMAGE=$(kubectl get deployment reranker -nsearch -o jsonpath="{.spec.template.spec.containers[?(@.name=='pyreranker')].image}")
-echo "SOURCE_IMAGE: $SOURCE_IMAGE"
-CURRENT_IMAGE=$(kubectl get deployment reranker-demo -nsearch -o jsonpath="{.spec.template.spec.containers[?(@.name=='pyreranker')].image}")
-echo "CURRENT_IMAGE: $CURRENT_IMAGE"
-kubectl set image deployment/reranker-demo -nsearch pyreranker=$SOURCE_IMAGE
-
-SOURCE_IMAGE=$(kubectl get deployment reranker -nsearch -o jsonpath="{.spec.template.spec.containers[?(@.name=='goreranker')].image}")
-echo "SOURCE_IMAGE: $SOURCE_IMAGE"
-CURRENT_IMAGE=$(kubectl get deployment reranker-demo -nsearch -o jsonpath="{.spec.template.spec.containers[?(@.name=='goreranker')].image}")
-echo "CURRENT_IMAGE: $CURRENT_IMAGE"
-kubectl set image deployment/reranker-demo -nsearch goreranker=$SOURCE_IMAGE
-
-
-POLICY=$(kubectl get deploy reranker -nsearch -o jsonpath='{.spec.template.spec.containers[?(@.name=="goreranker")].imagePullPolicy}')
-kubectl patch deploy reranker-demo -nsearch -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"goreranker\",\"imagePullPolicy\":\"$POLICY\"}]}}}}"
-kubectl get deploy reranker-demo -nsearch -o jsonpath='{.spec.template.spec.containers[?(@.name=="goreranker")].imagePullPolicy}'
-
-POLICY=$(kubectl get deploy reranker -nsearch -o jsonpath='{.spec.template.spec.containers[?(@.name=="pyreranker")].imagePullPolicy}')
-kubectl patch deploy reranker-demo -nsearch -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"pyreranker\",\"imagePullPolicy\":\"$POLICY\"}]}}}}"
-kubectl get deploy reranker-demo -nsearch -o jsonpath='{.spec.template.spec.containers[?(@.name=="pyreranker")].imagePullPolicy}'
-
-
-
-# 1️⃣ Extract container config from source
-CONTAINER=$(kubectl get deploy reranker -nsearch -o json | jq -c '.spec.template.spec.containers[] | select(.name=="goreranker") | {name,resources,livenessProbe,readinessProbe}')
-
-# 2️⃣ Print existing target container values before patching
-echo "---- Current target values ----"
-kubectl get deploy reranker-demo -nsearch -o json | jq '.spec.template.spec.containers[] | select(.name=="goreranker") | {name,resources,livenessProbe,readinessProbe}'
-
-# 3️⃣ Patch the target with the copied specs
-kubectl patch deploy reranker-demo -nsearch -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[${CONTAINER}]}}}}"
-
-# 1️⃣ Extract container config from source
-CONTAINER=$(kubectl get deploy reranker -nsearch -o json | jq -c '.spec.template.spec.containers[] | select(.name=="pyreranker") | {name,resources,livenessProbe,readinessProbe}')
-
-# 3️⃣ Patch the target with the copied specs
-kubectl patch deploy reranker-demo -nsearch -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[${CONTAINER}]}}}}"
-
-# 4️⃣ Confirm new values
-echo "---- Updated target values ----"
-kubectl get deploy reranker-demo -o json | jq '.spec.template.spec.containers[] | select(.name=="goreranker") | {name,resources,livenessProbe,readinessProbe}'
-
-kubectl get deploy reranker-demo -nsearch -o jsonpath='{.spec.template.spec.containers[?(@.name=="goreranker")].livenessProbe}'
-kubectl get deploy reranker-demo -nsearch -o jsonpath='{.spec.template.spec.containers[?(@.name=="goreranker")].readinessProbe}'
-kubectl get deploy reranker-demo -nsearch -o jsonpath='{.spec.template.spec.containers[?(@.name=="goreranker")].resources}'
 
 
 #aws apse1
@@ -112,32 +48,7 @@ kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDI
 kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDIS_SOCKET_TIMEOUT_RERANKER=0.1
 
 
-
-replicas=$(kubectl get deploy reranker -nsearch -o jsonpath='{.spec.replicas}')
-#apse1
-kubectl scale deploy reranker-demo -nsearch --replicas="1"
-
-kubectl annotate deploy reranker-demo -n search \
-  kubernetes.io/change-cause="increased replicas to $replicas"
-
-
-kubectl rollout restart deployment reranker-demo -nsearch
-kubectl rollout status deployment reranker-demo -nsearch
-kubectl rollout history deployment reranker-demo -nsearch
-# kubectl rollout undo deployment reranker-demo -nsearch
-# kubectl rollout undo deployment reranker-demo -nsearch --to-revision=1
-
-#before load test
-#kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL
-
 kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" REDIS_CACHE_TTL=80
-kubectl set env deployment/reranker -nsearch --containers="goreranker" LOG_LEVEL=error
-kubectl set env deployment/reranker -nsearch --containers="pyreranker" LOG_LEVEL=ERROR
-kubectl annotate deploy reranker -n search \
-  kubernetes.io/change-cause="reset"
-kubectl rollout status deployment reranker -nsearch
-kubectl rollout history deployment reranker -nsearch
-
 kubectl set env deployment/reranker-demo -nsearch --containers="goreranker" METRICS_TAGS='app:reranker-demo,env:prod,region:ap-southeast-1,version:go'
 kubectl set env deployment/reranker-demo -nsearch --containers="goreranker" METRICS_NAMESPACE=reranker-demo
 kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" ENV=prod
@@ -146,3 +57,6 @@ kubectl set env deployment/reranker-demo -nsearch --containers="pyreranker" SERV
 
 # kubectl patch deployment reranker-demo -nsearch --type='json' \
 #   -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/command", "value": ["/bin/sh", "-c", "python3 /app/reranker/pyreranker.py"]}]'
+
+#before load test
+#kubectl set env deploy/reranker-demo -nsearch --list --resolve --containers="pyreranker" | grep -i TTL

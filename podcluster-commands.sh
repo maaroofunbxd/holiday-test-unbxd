@@ -1,0 +1,1 @@
+#./clustermonitor.sh qcs-demo 600 search

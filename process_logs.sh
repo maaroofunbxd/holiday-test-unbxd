@@ -33,3 +33,7 @@ find "$directory" -name "${prefix}-*.log" -type f | while read -r file; do
   output_file="${directory}/${service}_requests_${basename_file}.jsonl"
   python3 "$extract_script" -i "$file" -o "$output_file"
 done
+
+cmd="aws s3 cp ${directory} s3://unbxd-des/${service}loadtest-${region}/ --recursive --include "*.jsonl""
+echo $cmd
+#eval $cmd
