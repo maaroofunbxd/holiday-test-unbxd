@@ -34,7 +34,7 @@ def run_command(cmd, capture_output=True, check=True):
 def get_jsonpath(deploy, ns, container, path):
     """Get a value from deployment using jsonpath."""
     jsonpath = f"{{.spec.template.spec.containers[?(@.name=='{container}')].{path}}}"
-    cmd = f"kubectl get deploy {deploy} -n {ns} -o jsonpath='{jsonpath}'"
+    cmd = f'kubectl get deploy {deploy} -n {ns} -o jsonpath="{jsonpath}"'
     return run_command(cmd)
 
 
