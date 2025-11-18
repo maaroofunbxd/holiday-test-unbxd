@@ -19,13 +19,17 @@ demo_deployment = f"{deployment_name}-demo"
 def run_command(cmd, capture_output=True, check=True):
     """Execute a shell command and return the result."""
     print(f"Running: {cmd}")
-    result = subprocess.run(
-        cmd,
-        shell=True,
-        capture_output=capture_output,
-        text=True,
-        check=check
-    )
+    try:
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=capture_output,
+            text=True,
+            check=check
+        )
+    except Exception as e:
+        print(e)        
+
     if capture_output:
         return result.stdout.strip()
     return None
@@ -138,10 +142,10 @@ def main():
             }
         }
     }
-    with open("patch1.json", "w") as f:
+    with open("patch.json", "w") as f:
         json.dump(patch, f)
 
-    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} --patch-file patch1.json"
+    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} --patch-file patch.json"
     run_command(cmd)
     
     # Verify updated values
