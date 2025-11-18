@@ -78,7 +78,9 @@ def main():
             }
         }
     }
-    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} -p '{json.dumps(patch)}'"
+    json_str = json.dumps(patch).replace('"', '\\"')
+    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} -p \"{json_str}\""
+    #cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} -p '{json.dumps(patch)}'"
     run_command(cmd)
     
     # Verify imagePullPolicy
