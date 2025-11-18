@@ -102,7 +102,7 @@ else
     echo "Entering interactive mode on cluster..."
     echo "Suggested commands:"
     echo "  ./clustermonitor.sh              # Monitor pods"
-    echo "  ./get-service-host.sh reranker   # Get reranker host"
+    echo "  ./get-service-host.sh reranker search   # Get reranker host"
     echo "  kubectl get pods -n search       # List pods"
     echo ""
     ssh -t ec2-user@usejump.unbxd.io "ssh -t $SSH_HOST \"sudo su - $SSH_USER -c 'cd ~/mrf/holiday-test-unbxd && exec bash'\""
