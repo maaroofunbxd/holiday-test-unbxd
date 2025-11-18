@@ -138,10 +138,10 @@ def main():
             }
         }
     }
-    with open("patch.json", "w") as f:
+    with open("patch1.json", "w") as f:
         json.dump(patch, f)
 
-    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} --patch-file patch.json"
+    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} --patch-file patch1.json"
     run_command(cmd)
     
     # Verify updated values
