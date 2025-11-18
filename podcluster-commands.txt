@@ -1,2 +1,2 @@
-./commonpre-test.sh
+python3 commonpre-test.py
 bash
