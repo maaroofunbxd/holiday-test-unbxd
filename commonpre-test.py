@@ -78,9 +78,9 @@ def main():
             }
         }
     }
-    json_str = json.dumps(patch).replace('"', '\\"')
-    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} -p \"{json_str}\""
-    #cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} -p '{json.dumps(patch)}'"
+    with open("patch.json", "w") as f:
+        json.dump(patch, f)
+    cmd = f"kubectl patch deploy {demo_deployment} -n {namespace} --patch-file patch.json"
     run_command(cmd)
     
     # Verify imagePullPolicy
