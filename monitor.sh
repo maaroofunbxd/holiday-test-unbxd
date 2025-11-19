@@ -5,5 +5,4 @@
 # Terminal 2: Run this to monitor pods during load test
 
 # Edit the command below for your test:
-./accesscluster.sh ap-southeast-1prod @podcluster-commands.sh
-bash
+./accesscluster.sh ap-southeast-1prod "@podcluster-commands.sh && bash"
