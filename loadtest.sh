@@ -6,6 +6,6 @@
 
 # Edit the commands below for your test:
 source run-loadtest-with-host.sh
-. run-loadtest-with-host.sh qcs-demo ap-southeast-1prod ai
+. run-loadtest-with-host.sh qcs-demo ai ap-southeast-1prod
 
 
