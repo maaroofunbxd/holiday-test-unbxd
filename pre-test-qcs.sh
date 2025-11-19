@@ -1,12 +1,12 @@
-helm get values qcs -nai -o yaml > qcs-prod-values.yaml
+#helm get values qcs -nai -o yaml > qcs-prod-values.yaml
 
 cd ~/mrf/qcs/;
 
 
-helm uninstall qcs-demo -nai
+#helm uninstall qcs-demo -nai
 
-git checkout AI-915
-git fetch origin && git rebase origin/AI-915
+#git checkout AI-915
+#git fetch origin && git rebase origin/AI-915
 ls -R ./helm
 helm template qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.yaml -nai \
   --set service.env.SERVICE=qcs-demo \
