@@ -6,3 +6,4 @@
 
 # Edit the command below for your test:
 ./accesscluster.sh ap-southeast-1prod @podcluster-commands.sh
+bash
