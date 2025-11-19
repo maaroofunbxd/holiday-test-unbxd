@@ -17,7 +17,7 @@ namespace="ai"
 # exit 0
 
 #in local
-diff between demo.yaml prod.yaml
+diff demo.yaml prod.yaml
 
 SOURCE_IMAGE=$(kubectl get deployment $deploymentname -n$namespace -o jsonpath="{.spec.template.spec.containers[?(@.name=='$containername')].image}")
 echo "SOURCE_IMAGE: $SOURCE_IMAGE"
@@ -25,7 +25,7 @@ CURRENT_IMAGE=$(kubectl get deployment $deploymentname-demo -n$namespace -o json
 echo "CURRENT_IMAGE: $CURRENT_IMAGE"
 kubectl set image deployment/$deploymentname-demo -n$namespace $containername=$SOURCE_IMAGE
 
-POLICY=$(kubectl get deploy reranker -n$namespace -o jsonpath='{.spec.template.spec.containers[?(@.name=='$containername')].imagePullPolicy}')
+POLICY=$(kubectl get deploy $deploymentname -n$namespace -o jsonpath='{.spec.template.spec.containers[?(@.name=='$containername')].imagePullPolicy}')
 kubectl patch deploy $deploymentname-demo -n$namespace -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"$containername\",\"imagePullPolicy\":\"$POLICY\"}]}}}}"
 kubectl get deploy $deploymentname-demo -n$namespace -o jsonpath='{.spec.template.spec.containers[?(@.name=='$containername')].imagePullPolicy}'
 
@@ -53,7 +53,7 @@ kubectl get deploy $deploymentname-demo -n$namespace -o jsonpath='{.spec.templat
 
 
 #kubectl set env deployment/$deploymentname -n$namespace --containers="$containername" LOG_LEVEL=error
-# kubectl set env deployment/reranker -n$namespace --containers="$containername" LOG_LEVEL=ERROR
+# kubectl set env deployment/$deploymentname -n$namespace --containers="$containername" LOG_LEVEL=ERROR
 # kubectl annotate deploy $deploymentname -n $namespace \
 #   kubernetes.io/change-cause="reset"
 # kubectl rollout status deployment $deploymentname -n$namespace
@@ -73,4 +73,4 @@ kubectl rollout status deployment $deploymentname-demo -n$namespace
 kubectl rollout history deployment $deploymentname-demo -n$namespace
 # kubectl rollout undo deployment $deploymentname-demo -n$namespace
 # kubectl rollout undo deployment $deploymentname-demo -n$namespace --to-revision=1
-diff between demo.yaml prod.yaml
+diff demo.yaml prod.yaml
