@@ -22,7 +22,8 @@ if [[ "${2}" == @* ]]; then
   # Remove @ prefix and read from file
   CMD_FILE="${2:1}"
   if [ -f "$CMD_FILE" ]; then
-    CMD=$(cat "$CMD_FILE")
+    # Execute commands line by line in same session (preserves variables)
+    CMD="while IFS= read -r line; do echo \"Executing: \$line\"; eval \$line || exit 1; done < $CMD_FILE"
     echo "Reading commands from file: $CMD_FILE"
   else
     echo "Error: File not found: $CMD_FILE"
