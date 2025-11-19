@@ -7,6 +7,7 @@ helm uninstall qcs-demo -nai
 
 git checkout AI-915
 git fetch origin && git rebase origin/AI-915
+ls -R ./helm
 helm template qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.yaml -nai \
   --set service.env.SERVICE=qcs-demo \
   --set app=qcs-demo \
