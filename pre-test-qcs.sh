@@ -42,10 +42,15 @@ helm template qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.
 #   --set service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-additional-resource-tags"="Environment=demo,Service=qcs-demo" \
 #   --no-hooks
 
-helm install qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.yaml -nai \
+helm upgrade qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.yaml -nai \
   --set service.env.SERVICE=qcs-demo \
   --set app=qcs-demo \
   --set service.type=LoadBalancer \
-  --set service\.beta\.kubernetes\.io/aws-load-balancer-internal="0.0.0.0/0"
+  --set service\.beta\.kubernetes\.io/aws-load-balancer-internal="0.0.0.0/0" \
+  --set service.env.REDIS_HOST=ub-ec.prod.ap-southeast-1.infra \
+  --set service.env.GIMLI_URL=http://odin.prod.ap-southeast-1.infra \
+  --set ELASTIC_APM_SERVER_URL=http://apm.pilot-unbxd.infra:8200 \
+  --set service.env.ALBUSCLIENT_ALBUS_HOST=http://configstore.prod.ap-southeast-1.infra \
+  --set gunicorn.workerConnections=1000
 
 #helm uninstall qcs-demo -nai
