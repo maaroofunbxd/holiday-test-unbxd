@@ -1,4 +1,5 @@
 #sudo chown -R $USER:$USER .
+pip3 install pandas tabulate
 ./clustermonitor.sh qcs-demo 600 search
 #python3 commonpre-test.py
 #./simple-log-monitor.sh start app=qcs ./qcs-gcp-us-logs
