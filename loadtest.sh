@@ -5,6 +5,6 @@
 # Terminal 1: Run this to execute load test
 
 # Edit the commands below for your test:
-./run-loadtest-with-host.sh qcs-demo ai ap-southeast-1prod
+./run-loadtest-with-host.sh qcs-demo ap-southeast-1prod ai 
 
 
