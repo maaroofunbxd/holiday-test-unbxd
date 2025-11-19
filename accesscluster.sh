@@ -32,6 +32,7 @@ else
   CMD="${2}"
 fi
 
+echo $CMD
 # Set region-specific SSH access
 if [ "$REGION" = "use-1d" ]; then
   SSH_HOST="ai"
