@@ -13,6 +13,7 @@ helm template qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.
   --set service\.beta\.kubernetes\.io/aws-load-balancer-internal="0.0.0.0/0" \
   > qcs-demo-manifests.yaml
 
+cd ~/mrf/holiday-test-unbxd
 # helm install qcs-demo ./helm/qcs -nai\
 #   -f qcs-prod-values.yaml \
 #   --set service.name=qcs-demo \
