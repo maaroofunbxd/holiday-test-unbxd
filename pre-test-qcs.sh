@@ -52,5 +52,5 @@ helm upgrade qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.y
   --set ELASTIC_APM_SERVER_URL=http://apm.pilot-unbxd.infra:8200 \
   --set service.env.ALBUSCLIENT_ALBUS_HOST=http://configstore.prod.ap-southeast-1.infra \
   --set gunicorn.workerConnections=1000
-
+  --set image.tag=PR_maaroofunbxd_AI-915
 #helm uninstall qcs-demo -nai

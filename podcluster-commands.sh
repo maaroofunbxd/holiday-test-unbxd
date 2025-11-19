@@ -1,8 +1,10 @@
 #sudo chown -R $USER:$USER .
+sh ./pre-test-qcs.sh
+sleep 100
 pip3 install pandas tabulate
 ./clustermonitor.sh qcs-demo 600 ai
 pip3 uninstall pandas tabulate
-#sh ./pre-test-qcs.sh
+
 #bash
 #python3 commonpre-test.py
 #./simple-log-monitor.sh start app=qcs ./qcs-gcp-us-logs
