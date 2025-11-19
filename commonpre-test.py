@@ -60,25 +60,35 @@ def kubectl_patch(deploy, ns, patch_dict):
 
 def clean_probe(probe):
     """Clean probe config to have only one handler type.
-    Kubernetes allows only one of: exec, httpGet, tcpSocket, grpc"""
+    Kubernetes allows only one of: exec, httpGet, tcpSocket, grpc
+    Sets unused handlers to None for strategic merge to remove them."""
     if not probe:
         return probe
     
-    # Make a copy to avoid modifying original
-    cleaned = probe.copy()
+    # Make a deep copy to avoid modifying original
+    import copy
+    cleaned = copy.deepcopy(probe)
     
     # Handler types in priority order
     handler_types = ['httpGet', 'tcpSocket', 'exec', 'grpc']
     
     # Find which handler types are present
-    present_handlers = [h for h in handler_types if h in cleaned]
+    present_handlers = [h for h in handler_types if h in cleaned and cleaned[h]]
     
     if len(present_handlers) > 1:
         # Keep only the first one (highest priority)
         keeper = present_handlers[0]
+        print(f"  Multiple handlers detected: {present_handlers}")
+        print(f"  Keeping '{keeper}' and removing others")
         for handler in present_handlers[1:]:
-            print(f"  Removing duplicate handler '{handler}', keeping '{keeper}'")
             del cleaned[handler]
+    
+    # Set all other handler types to None to explicitly remove them during merge
+    if present_handlers:
+        keeper = present_handlers[0]
+        for handler in handler_types:
+            if handler != keeper:
+                cleaned[handler] = None
     
     return cleaned
 
