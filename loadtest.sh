@@ -108,9 +108,25 @@ if [ "$BACKGROUND" = true ]; then
   echo "🔥 Starting load test in BACKGROUND mode..."
   echo ""
   
-  REMOTE_CMD="cd ~/mrf/loadtest/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && export REGION='$REGION' && export HOST='$HOST' && screen -dmS $SESSION_NAME bash -c '$COMMANDS > $LOG_FILE 2>&1' && sleep 2 && echo '✅ Screen session started: $SESSION_NAME' && echo '   Log file: $LOG_FILE' && screen -ls | grep loadtest && echo 'To reattach: screen -r $SESSION_NAME'"
-  
-  ssh -t ec2-user@usejump.unbxd.io "ssh -t ubuntu@ip-10-0-1-231 '$REMOTE_CMD'"
+  # Write commands to temp file to execute on remote
+  TEMP_CMD=$(mktemp)
+  cat > "$TEMP_CMD" << EOF
+cd ~/mrf/loadtest/holiday-test-unbxd
+git fetch origin >/dev/null 2>&1
+git rebase origin/main >/dev/null 2>&1
+export REGION='$REGION'
+export HOST='$HOST'
+screen -dmS $SESSION_NAME bash -c '$COMMANDS > $LOG_FILE 2>&1'
+sleep 3
+echo '✅ Screen session started: $SESSION_NAME'
+echo '   Log file: $LOG_FILE'
+screen -ls | grep loadtest || echo 'Session may have exited - check logs'
+echo 'To reattach: screen -r $SESSION_NAME'
+echo 'To check logs: tail -f $LOG_FILE'
+EOF
+
+  ssh -t ec2-user@usejump.unbxd.io "ssh -t ubuntu@ip-10-0-1-231 'bash -s'" < "$TEMP_CMD"
+  rm -f "$TEMP_CMD"
   
   echo ""
   echo "✅ Load test started in background!"
