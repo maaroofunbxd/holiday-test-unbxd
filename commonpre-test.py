@@ -100,6 +100,8 @@ def main():
     
     # Compare demo and prod deployments (if yaml files exist)
     try:
+        run_command(f"kubectl get deploy {deploymentname}-demo -n{namespace} -oyaml > demo.yaml")
+        run_command(f"kubectl get deploy {deploymentname} -n{namespace} -oyaml > prod.yaml")
         run_command("diff demo.yaml prod.yaml", check=False)
     except:
         pass

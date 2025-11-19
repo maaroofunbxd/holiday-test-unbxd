@@ -11,8 +11,8 @@ namespace="ai"
 # kubectl rollout history deployment $deploymentname -n$namespace
 
 
-# kubectl get deploy $deploymentname-demo -n$namespace -oyaml > demo.yaml
-# kubectl get deploy $deploymentname -n$namespace -oyaml > prod.yaml
+kubectl get deploy $deploymentname-demo -n$namespace -oyaml > demo.yaml
+kubectl get deploy $deploymentname -n$namespace -oyaml > prod.yaml
 
 # exit 0
 
