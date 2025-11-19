@@ -58,6 +58,31 @@ def kubectl_patch(deploy, ns, patch_dict):
     return run_command(cmd, input_data=patch_json)
 
 
+def clean_probe(probe):
+    """Clean probe config to have only one handler type.
+    Kubernetes allows only one of: exec, httpGet, tcpSocket, grpc"""
+    if not probe:
+        return probe
+    
+    # Make a copy to avoid modifying original
+    cleaned = probe.copy()
+    
+    # Handler types in priority order
+    handler_types = ['httpGet', 'tcpSocket', 'exec', 'grpc']
+    
+    # Find which handler types are present
+    present_handlers = [h for h in handler_types if h in cleaned]
+    
+    if len(present_handlers) > 1:
+        # Keep only the first one (highest priority)
+        keeper = present_handlers[0]
+        for handler in present_handlers[1:]:
+            print(f"  Removing duplicate handler '{handler}', keeping '{keeper}'")
+            del cleaned[handler]
+    
+    return cleaned
+
+
 def main():
     print("=" * 80)
     print("Pre-Test Setup: Syncing prod to demo deployment")
@@ -117,11 +142,22 @@ def main():
     for container in source_data['spec']['template']['spec']['containers']:
         if container['name'] == container_name:
             # Extract only the fields we want to copy
+            liveness = container.get('livenessProbe', {})
+            readiness = container.get('readinessProbe', {})
+            
+            # Clean probes to ensure only one handler type
+            if liveness:
+                print("Cleaning livenessProbe...")
+                liveness = clean_probe(liveness)
+            if readiness:
+                print("Cleaning readinessProbe...")
+                readiness = clean_probe(readiness)
+            
             container_config = {
                 'name': container['name'],
                 'resources': container.get('resources', {}),
-                'livenessProbe': container.get('livenessProbe', {}),
-                'readinessProbe': container.get('readinessProbe', {})
+                'livenessProbe': liveness,
+                'readinessProbe': readiness
             }
             break
     
