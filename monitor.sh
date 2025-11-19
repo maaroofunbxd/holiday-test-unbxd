@@ -71,7 +71,7 @@ elif [ "$BACKGROUND" = true ]; then
   echo "════════════════════════════════════════════════════════════"
   echo ""
   
-  REMOTE_CMD="cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && pip3 install --quiet pandas tabulate && screen -dmS $SESSION_NAME bash -c './clustermonitor.sh $SERVICE $DURATION $NAMESPACE > $LOG_FILE 2>&1' && echo 'Screen session started: $SESSION_NAME' && echo 'Log file: $LOG_FILE' && echo 'To reattach: screen -r $SESSION_NAME' && echo 'To check status: ./monitor.sh --status' && sleep 1 && screen -ls | grep monitor || echo 'Session created'"
+  REMOTE_CMD="cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && pip3 install --quiet pandas tabulate && screen -dmS $SESSION_NAME -L -Logfile $LOG_FILE bash -c './clustermonitor.sh $SERVICE $DURATION $NAMESPACE' && echo 'Screen session started: $SESSION_NAME' && echo 'Log file: $LOG_FILE' && echo 'To reattach: screen -r $SESSION_NAME' && echo 'To check status: ./monitor.sh --status' && sleep 1 && screen -ls | grep monitor || echo 'Session created'"
   
   ./accesscluster.sh "$REGION" "$REMOTE_CMD"
   
