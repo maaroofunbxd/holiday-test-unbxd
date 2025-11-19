@@ -108,7 +108,19 @@ if [ "$BACKGROUND" = true ]; then
   echo "🔥 Starting load test in BACKGROUND mode..."
   echo ""
   
-  REMOTE_CMD="cd ~/mrf/loadtest/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && export REGION=$REGION && export HOST=$HOST && screen -dmS $SESSION_NAME -L -Logfile $LOG_FILE bash -c '$COMMANDS' && echo 'Screen session started: $SESSION_NAME' && echo 'Log file: $LOG_FILE' && echo 'To reattach: screen -r $SESSION_NAME' && echo 'To check status: ./loadtest.sh --status' && sleep 1 && screen -ls | grep loadtest || echo 'Session created'"
+  REMOTE_CMD="cd ~/mrf/loadtest/holiday-test-unbxd && \
+git fetch origin >/dev/null 2>&1 && \
+git rebase origin/main >/dev/null 2>&1 && \
+export REGION=$REGION && \
+export HOST=$HOST && \
+screen -dmS $SESSION_NAME bash -c '$COMMANDS > $LOG_FILE 2>&1' && \
+echo '✅ Screen session started: $SESSION_NAME' && \
+echo '   Log file: $LOG_FILE' && \
+echo '' && \
+echo 'To reattach: screen -r $SESSION_NAME' && \
+echo 'To check status: ./loadtest.sh --status' && \
+sleep 1 && \
+screen -ls | grep loadtest || echo 'Session created'"
   
   ssh -t ec2-user@usejump.unbxd.io "ssh -t ubuntu@ip-10-0-1-231 '$REMOTE_CMD'"
   
