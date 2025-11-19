@@ -113,7 +113,7 @@ git fetch origin >/dev/null 2>&1 && \
 git rebase origin/main >/dev/null 2>&1 && \
 export REGION=$REGION && \
 export HOST=$HOST && \
-screen -dmS $SESSION_NAME bash -c '$COMMANDS | tee $LOG_FILE' && \
+screen -dmS $SESSION_NAME bash -c '$COMMANDS > $LOG_FILE 2>&1' && \
 echo '✅ Screen session started: $SESSION_NAME' && \
 echo '   Log file: $LOG_FILE' && \
 echo '' && \

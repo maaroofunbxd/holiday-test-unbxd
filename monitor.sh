@@ -75,7 +75,7 @@ elif [ "$BACKGROUND" = true ]; then
 git fetch origin >/dev/null 2>&1 && \
 git rebase origin/main >/dev/null 2>&1 && \
 pip3 install --quiet pandas tabulate && \
-screen -dmS $SESSION_NAME bash -c './clustermonitor.sh $SERVICE $DURATION $NAMESPACE | tee $LOG_FILE' && \
+screen -dmS $SESSION_NAME bash -c './clustermonitor.sh $SERVICE $DURATION $NAMESPACE > $LOG_FILE 2>&1' && \
 echo '✅ Screen session started: $SESSION_NAME' && \
 echo '   Log file: $LOG_FILE' && \
 echo '' && \
