@@ -42,7 +42,7 @@ helm template qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.
 #   --set service.annotations."service\.beta\.kubernetes\.io/aws-load-balancer-additional-resource-tags"="Environment=demo,Service=qcs-demo" \
 #   --no-hooks
 
-helm upgrade qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.yaml -nai \
+helm install qcs-demo  ./helm/qcs/ -f ./helm/qcs/values-aws-dev-ap-southeast-1.yaml -nai \
   --set service.env.SERVICE=qcs-demo \
   --set app=qcs-demo \
   --set service.type=LoadBalancer \
