@@ -1,7 +1,7 @@
 #sudo chown -R $USER:$USER .
-#./clustermonitor.sh qcs-demo 600 search
-python3 commonpre-test.py
-./simple-log-monitor.sh start app=qcs ./qcs-gcp-us-logs
+./clustermonitor.sh qcs-demo 600 search
+#python3 commonpre-test.py
+#./simple-log-monitor.sh start app=qcs ./qcs-gcp-us-logs
 # kubectl get deploy qcs-demo -n ai -o yaml > demo.yaml
 # kubectl get deploy qcs -n ai -o yaml > prod.yaml
 # diff demo.yaml prod.yaml
