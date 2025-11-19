@@ -3,3 +3,4 @@
 # kubectl get deploy qcs -n ai -o yaml > prod.yaml
 # diff demo.yaml prod.yaml
 #python3 commonpre-test.py
+bash
