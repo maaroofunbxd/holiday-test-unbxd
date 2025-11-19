@@ -38,17 +38,14 @@ if [ "$STATUS" = true ]; then
   echo ""
   
   CHECK_CMD="cd ~/mrf/holiday-test-unbxd && \
-echo '=== Screen Sessions ===' && \
-screen -ls 2>&1 | grep monitor || echo 'No monitor sessions' && \
-echo '' && \
-echo '=== Running Processes ===' && \
+echo '=== Running Monitor Processes ===' && \
 ps aux | grep -v grep | grep clustermonitor || echo 'No processes' && \
 echo '' && \
 echo '=== Recent Logs ===' && \
 ls -lth monitor_output_*.log 2>/dev/null | head -3 || echo 'No logs' && \
 echo '' && \
-echo '=== Latest Output ===' && \
-tail -15 \$(ls -t monitor_output_*.log 2>/dev/null | head -1) 2>/dev/null || echo 'No output'"
+echo '=== Latest Output (last 20 lines) ===' && \
+tail -20 \$(ls -t monitor_output_*.log 2>/dev/null | head -1) 2>/dev/null || echo 'No output'"
   
   ./accesscluster.sh "$REGION" "$CHECK_CMD"
 
@@ -71,7 +68,7 @@ elif [ "$BACKGROUND" = true ]; then
   echo "════════════════════════════════════════════════════════════"
   echo ""
   
-  REMOTE_CMD="cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && pip3 install --quiet pandas tabulate && screen -dmS $SESSION_NAME -L -Logfile $LOG_FILE bash -c './clustermonitor.sh $SERVICE $DURATION $NAMESPACE' && echo 'Screen session started: $SESSION_NAME' && echo 'Log file: $LOG_FILE' && echo 'To reattach: screen -r $SESSION_NAME' && echo 'To check status: ./monitor.sh --status' && sleep 1 && screen -ls | grep monitor || echo 'Session created'"
+  REMOTE_CMD="cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && pip3 install --quiet pandas tabulate && nohup ./clustermonitor.sh $SERVICE $DURATION $NAMESPACE > $LOG_FILE 2>&1 & PID=\\\$! && echo \"Process started with PID: \\\$PID\" && echo \"Log file: $LOG_FILE\" && echo \"To check: ps -p \\\$PID or tail -f $LOG_FILE\""
   
   ./accesscluster.sh "$REGION" "$REMOTE_CMD"
   
