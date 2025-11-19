@@ -17,6 +17,7 @@ helm template ner-demo ./helm/ner -nsearch\
   --no-hooks \
   > ner-demo-manifests.yaml
 
+#has to be values changed, not like this
 helm install ner-demo ./helm/ner -nsearch\
   -f ner-prod-values.yaml \
   --set service.name=ner-demo \
