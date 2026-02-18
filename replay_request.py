@@ -66,10 +66,34 @@ def build_xh_command(request_data, base_url=None, use_placeholder=False):
     # If use_placeholder and no base_url, use bash variable placeholder
     if use_placeholder and not base_url:
         path = request_data.get("path", "")
-        if path.startswith('/'):
-            url = f"$BASE_URL{path}"
+        sitekey = request_data.get("sitekey", "")
+        
+        if path.startswith('http'):
+            # Full URL - use as is but replace host with variable
+            # Extract path from full URL
+            from urllib.parse import urlparse
+            parsed = urlparse(path)
+            url = f"$BASE_URL{parsed.path}"
+            if parsed.query:
+                url += f"?{parsed.query}"
+        elif path:
+            # Path exists
+            if path.startswith('/'):
+                url = f"$BASE_URL{path}"
+            else:
+                url = f"$BASE_URL/{path}"
         else:
-            url = f"$BASE_URL/{path}"
+            # No path, try to construct from sitekey and api
+            api = request_data.get("api", "recommend_v2")
+            if sitekey:
+                if api == "rerank":
+                    url = f"$BASE_URL/v1.0/sites/{sitekey}/rerank"
+                elif api == "recommend_v2":
+                    url = f"$BASE_URL/v2.0/sites/{sitekey}/recommend"
+                else:
+                    url = f"$BASE_URL/v1.0/sites/{sitekey}/recommend"
+            else:
+                url = "$BASE_URL"
     else:
         url = build_url(request_data, base_url)
     
