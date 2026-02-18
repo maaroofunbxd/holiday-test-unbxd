@@ -63,7 +63,7 @@ def build_xh_command(request_data, base_url=None, use_placeholder=False):
     
     request_type = request_data.get("type", "post").lower()
     
-    # If use_placeholder and no base_url, use placeholder
+    # If use_placeholder and no base_url, use bash variable placeholder
     if use_placeholder and not base_url:
         path = request_data.get("path", "")
         if path.startswith('/'):
@@ -142,18 +142,15 @@ def replay_request(request_data, base_url=None, show_xh=False, use_xh=False, xh_
         print(xh_cmd)
         print("=" * 80)
         if use_placeholder:
-            print("\n💡 Replace <BASE_URL> with your actual base URL (e.g., http://localhost:8080)")
+            print("\n💡 Set BASE_URL environment variable: export BASE_URL=http://your-server:8080")
         else:
             print("\n💡 Copy the command above and run it in your terminal")
         return None
     
     if show_xh or use_xh:
-        use_placeholder = base_url is None
-        xh_cmd = build_xh_command(request_data, base_url, use_placeholder=use_placeholder)
+        xh_cmd = build_xh_command(request_data, base_url)
         print("xh command:")
         print(xh_cmd)
-        if use_placeholder:
-            print("\n💡 Replace <BASE_URL> with your actual base URL")
         print()
         
         if use_xh:
