@@ -57,12 +57,21 @@ def build_url(request_data, base_url=None):
     return url
 
 
-def build_xh_command(request_data, base_url=None):
+def build_xh_command(request_data, base_url=None, use_placeholder=False):
     """Build xh command that can be copy-pasted and executed."""
     import shlex
     
     request_type = request_data.get("type", "post").lower()
-    url = build_url(request_data, base_url)
+    
+    # If use_placeholder and no base_url, use placeholder
+    if use_placeholder and not base_url:
+        path = request_data.get("path", "")
+        if path.startswith('/'):
+            url = f"$BASE_URL{path}"
+        else:
+            url = f"$BASE_URL/{path}"
+    else:
+        url = build_url(request_data, base_url)
     
     # xh uses ./xh (relative path)
     cmd_parts = ["./xh", request_type.upper()]
@@ -124,19 +133,27 @@ def replay_request(request_data, base_url=None, show_xh=False, use_xh=False, xh_
     
     # Show xh command if requested
     if xh_only:
-        xh_cmd = build_xh_command(request_data, base_url)
+        # If no base_url provided, use placeholder
+        use_placeholder = base_url is None
+        xh_cmd = build_xh_command(request_data, base_url, use_placeholder=use_placeholder)
         print("=" * 80)
         print("XH COMMAND (copy-paste to run manually):")
         print("=" * 80)
         print(xh_cmd)
         print("=" * 80)
-        print("\n💡 Copy the command above and run it in your terminal")
+        if use_placeholder:
+            print("\n💡 Replace <BASE_URL> with your actual base URL (e.g., http://localhost:8080)")
+        else:
+            print("\n💡 Copy the command above and run it in your terminal")
         return None
     
     if show_xh or use_xh:
-        xh_cmd = build_xh_command(request_data, base_url)
+        use_placeholder = base_url is None
+        xh_cmd = build_xh_command(request_data, base_url, use_placeholder=use_placeholder)
         print("xh command:")
         print(xh_cmd)
+        if use_placeholder:
+            print("\n💡 Replace <BASE_URL> with your actual base URL")
         print()
         
         if use_xh:
