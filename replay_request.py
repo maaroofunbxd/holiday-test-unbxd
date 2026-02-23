@@ -287,16 +287,26 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Extract from kubectl logs and replay
+  kubectl logs -nsearch <pod-name> -c pyreranker | python3 extract_reranker_sites.py --extract-requests -o requests.jsonl
+  python3 replay_request.py -i requests.jsonl -n 1 --xh-only
+  
+  # Extract from all reranker pods (semantic_search platform)
+  for pod in $(kubectl get pods -nsearch -l app=reranker -o name | cut -d'/' -f2); do
+      kubectl logs -nsearch $pod -c pyreranker | python3 extract_reranker_sites.py --platform semantic_search --extract-requests
+  done > requests.jsonl
+  python3 replay_request.py -i requests.jsonl -n 1 --xh-only
+  
   # Execute using urllib (default, no dependencies)
   python3 replay_request.py -i requests.jsonl -n 5 --base-url http://localhost:8080
   
   # ONLY show xh command (don't execute) - for debugging
-  python3 replay_request.py -i requests.jsonl -n 5 --xh-only --base-url http://localhost:8080
+  python3 replay_request.py -i requests.jsonl -n 5 --xh-only
   
   # Show xh command AND execute with urllib
   python3 replay_request.py -i requests.jsonl -n 5 --show-xh --base-url http://localhost:8080
   
-  # Execute using xh (requires xh at /home/ai-prod-ap-southeast-2-eks/mrf/xh)
+  # Execute using xh (requires ./xh in current directory)
   python3 replay_request.py -i requests.jsonl -n 5 --use-xh --base-url http://localhost:8080
   
   # Replay from JSON string
