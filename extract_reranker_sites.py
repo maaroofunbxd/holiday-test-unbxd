@@ -111,16 +111,24 @@ def extract_from_python_log(line: str, include_full_data=False) -> Optional[Dict
             algo = payload_json.get("algo")
             algo_version = payload_json.get("algoVersion")
             
-            # Infer API from payload content
+            # Infer API from payload content (priority order)
+            # 1. rerank - highest priority, rankingContext takes priority over pids/algo
+            #    Note: rerank typically requires products array, but rankingContext is the key indicator
             if payload_json.get("rankingContext") is not None:
                 api = "rerank"
-            elif payload_json.get("pids") is not None or payload_json.get("algo") is not None:
+            # 2. recommend_v2 - if pids/algo/image_url present
+            elif (payload_json.get("pids") is not None or 
+                  payload_json.get("algo") is not None or 
+                  payload_json.get("image_url") is not None):
                 api = "recommend_v2"
+            # 3. If no indicators, api stays None (will default to recommend_v2 in replay_request)
+            #    This covers POST requests with only query/userId/platform (e.g., semantic_search POST)
         except (ValueError, SyntaxError):
             payload_json = None
     else:
         # GET request - payload is a query string
         request_type = "get"
+        api = "recommend"  # GET requests use v1.0 recommend endpoint
         payload_json = payload_str
     
     # Parse headers

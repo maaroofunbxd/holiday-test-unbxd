@@ -43,12 +43,14 @@ def build_url(request_data, base_url=None):
         url = f"http://localhost{path}"
     else:
         # Try to construct from sitekey and api
-        api = request_data.get("api", "recommend_v2")
+        api = request_data.get("api") or "recommend_v2"  # Handle null/None, default to recommend_v2
         if sitekey:
             if api == "rerank":
                 url = f"http://localhost/v1.0/sites/{sitekey}/rerank"
             elif api == "recommend_v2":
                 url = f"http://localhost/v2.0/sites/{sitekey}/recommend"
+            elif api == "recommend":
+                url = f"http://localhost/v1.0/sites/{sitekey}/recommend"
             else:
                 url = f"http://localhost/v1.0/sites/{sitekey}/recommend"
         else:
@@ -84,12 +86,14 @@ def build_xh_command(request_data, base_url=None, use_placeholder=False):
                 url = f"$BASE_URL/{path}"
         else:
             # No path, try to construct from sitekey and api
-            api = request_data.get("api", "recommend_v2")
+            api = request_data.get("api") or "recommend_v2"  # Handle null/None, default to recommend_v2
             if sitekey:
                 if api == "rerank":
                     url = f"$BASE_URL/v1.0/sites/{sitekey}/rerank"
                 elif api == "recommend_v2":
                     url = f"$BASE_URL/v2.0/sites/{sitekey}/recommend"
+                elif api == "recommend":
+                    url = f"$BASE_URL/v1.0/sites/{sitekey}/recommend"
                 else:
                     url = f"$BASE_URL/v1.0/sites/{sitekey}/recommend"
             else:
