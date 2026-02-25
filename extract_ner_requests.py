@@ -22,10 +22,8 @@ import re
 import sys
 import argparse
 from urllib.parse import urlparse
-try:
-    from service_endpoints import get_ner_path
-except ImportError:
-    pass  # Optional import
+# Note: get_ner_path from service_endpoints is not currently used, so import is optional
+# If needed in future, install pyyaml: pip install --user pyyaml
 
 
 def extract_ner_request(line):
