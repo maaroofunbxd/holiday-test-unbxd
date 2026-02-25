@@ -287,15 +287,25 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Extract from kubectl logs and replay
-  kubectl logs -nsearch <pod-name> -c pyreranker | python3 extract_reranker_sites.py --extract-requests -o requests.jsonl
-  python3 replay_request.py -i requests.jsonl -n 1 --xh-only
-  
-  # Extract from all reranker pods (semantic_search platform)
-  for pod in $(kubectl get pods -nsearch -l app=reranker -o name | cut -d'/' -f2); do
-      kubectl logs -nsearch $pod -c pyreranker | python3 extract_reranker_sites.py --platform semantic_search --extract-requests
-  done > requests.jsonl
-  python3 replay_request.py -i requests.jsonl -n 1 --xh-only
+    # Extract reranker requests from kubectl logs and replay
+    kubectl logs -nsearch <pod-name> -c pyreranker | python3 extract_reranker_sites.py --extract-requests -o requests.jsonl
+    python3 replay_request.py -i requests.jsonl -n 1 --xh-only
+    
+    # Extract from all reranker pods (semantic_search platform)
+    for pod in $(kubectl get pods -nsearch -l app=reranker -o name | cut -d'/' -f2); do
+        kubectl logs -nsearch $pod -c pyreranker | python3 extract_reranker_sites.py --platform semantic_search --extract-requests
+    done > requests.jsonl
+    python3 replay_request.py -i requests.jsonl -n 1 --xh-only
+    
+    # Extract NER requests from kubectl logs and replay
+    kubectl logs -nsearch <pod-name> | python3 extract_ner_requests.py -o ner_requests.jsonl
+    python3 replay_request.py -i ner_requests.jsonl -n 1 --xh-only
+    
+    # Extract from all NER pods
+    for pod in $(kubectl get pods -nsearch -l app=ner -o name | cut -d'/' -f2); do
+        kubectl logs -nsearch $pod | python3 extract_ner_requests.py
+    done > ner_requests.jsonl
+    python3 replay_request.py -i ner_requests.jsonl -n 1 --xh-only
   
   # Execute using urllib (default, no dependencies)
   python3 replay_request.py -i requests.jsonl -n 5 --base-url http://localhost:8080

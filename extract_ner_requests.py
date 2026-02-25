@@ -1,10 +1,31 @@
 #!/usr/bin/env python3
-# python3 extract_ner_requests.py -i ner_logs.txt -o ner_requests.jsonl
+"""
+Extract NER GET requests from Apache-style log files or kubectl logs.
+
+Usage:
+    # From log file
+    python3 extract_ner_requests.py -i ner_logs.txt -o ner_requests.jsonl
+    
+    # From kubectl logs (pipe from stdin)
+    kubectl logs -nsearch <pod-name> | python3 extract_ner_requests.py -o ner_requests.jsonl
+    
+    # From all NER pods
+    for pod in $(kubectl get pods -nsearch -l app=ner -o name | cut -d'/' -f2); do
+        kubectl logs -nsearch $pod | python3 extract_ner_requests.py
+    done > ner_requests.jsonl
+    
+    # Then replay with replay_request.py
+    python3 replay_request.py -i ner_requests.jsonl -n 1 --xh-only
+"""
 import json
 import re
+import sys
 import argparse
 from urllib.parse import urlparse
-from service_endpoints import get_ner_path
+try:
+    from service_endpoints import get_ner_path
+except ImportError:
+    pass  # Optional import
 
 
 def extract_ner_request(line):
@@ -80,12 +101,24 @@ def extract_ner_request(line):
 
 
 def extract_ner_requests(input_file, output_file, include_errors=False, skip_monitor=True):
-    """Extract NER GET requests from log files."""
+    """Extract NER GET requests from log files or stdin."""
     extracted_count = 0
     error_count = 0
     skipped_monitor = 0
     
-    with open(input_file, "r") as infile, open(output_file, "w") as outfile:
+    # Handle stdin if input_file is "-" or None
+    if input_file == "-" or input_file is None:
+        infile = sys.stdin
+    else:
+        infile = open(input_file, "r")
+    
+    # Handle stdout if output_file is "-" or None
+    if output_file == "-" or output_file is None:
+        outfile = sys.stdout
+    else:
+        outfile = open(output_file, "w")
+    
+    try:
         for line in infile:
             # Look for GET request lines
             if '"GET ' in line:
@@ -106,6 +139,11 @@ def extract_ner_requests(input_file, output_file, include_errors=False, skip_mon
                     json.dump(entry, outfile)
                     outfile.write("\n")
                     extracted_count += 1
+    finally:
+        if input_file != "-" and input_file is not None and infile != sys.stdin:
+            infile.close()
+        if output_file != "-" and output_file is not None and outfile != sys.stdout:
+            outfile.close()
     
     return extracted_count, error_count, skipped_monitor
 
@@ -116,13 +154,13 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-i", "--input",
-        default="ner_logs.txt",
-        help="Input file containing raw NER logs (default: ner_logs.txt)"
+        default="-",
+        help="Input file containing raw NER logs (default: stdin, use '-' for explicit stdin)"
     )
     parser.add_argument(
         "-o", "--output",
         default="ner_requests.jsonl",
-        help="Output JSONL file (default: ner_requests.jsonl)"
+        help="Output JSONL file (default: ner_requests.jsonl, use '-' for stdout)"
     )
     parser.add_argument(
         "--include-errors", action="store_true",
@@ -142,9 +180,10 @@ if __name__ == "__main__":
         skip_monitor=not args.include_monitor
     )
 
-    print(f"✅ Extracted {extracted_count} NER requests written to {args.output}")
+    output_dest = "stdout" if args.output == "-" else args.output
+    print(f"✅ Extracted {extracted_count} NER requests written to {output_dest}", file=sys.stderr)
     if skipped_monitor > 0:
-        print(f"ℹ️  Skipped {skipped_monitor} health check/monitor requests (use --include-monitor to include them)")
+        print(f"ℹ️  Skipped {skipped_monitor} health check/monitor requests (use --include-monitor to include them)", file=sys.stderr)
     if error_count > 0:
-        print(f"ℹ️  Skipped {error_count} requests with error status codes (use --include-errors to include them)")
+        print(f"ℹ️  Skipped {error_count} requests with error status codes (use --include-errors to include them)", file=sys.stderr)
 
