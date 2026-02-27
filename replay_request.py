@@ -5,8 +5,8 @@ Replay a single request from JSONL file or JSON data.
 Uses only Python standard library (urllib) - no external dependencies needed.
 
 Usage:
-    # Replay a specific line from JSONL file
-    python3 replay_request.py -i requests.jsonl -n 5
+    # Replay first N requests from JSONL file
+    python3 replay_request.py -i requests.jsonl -n 3
     
     # Replay from JSON string
     python3 replay_request.py -j '{"type":"post","path":"/v2.0/sites/test/recommend","payload":{"platform":"netcore"}}'
@@ -329,9 +329,9 @@ Examples:
         help="Input JSONL file"
     )
     parser.add_argument(
-        "-n", "--line-number",
+        "-n", "--number",
         type=int,
-        help="Line number in JSONL file (1-indexed)"
+        help="Number of requests to process from JSONL file (processes first N lines)"
     )
     parser.add_argument(
         "-j", "--json",
@@ -393,47 +393,50 @@ Examples:
             print(f"Error parsing JSON: {e}", file=sys.stderr)
             sys.exit(1)
     
-    elif args.input and args.line_number:
+    elif args.input and args.number:
         try:
             with open(args.input, 'r') as f:
-                lines = f.readlines()
-                if args.line_number < 1 or args.line_number > len(lines):
-                    print(f"Error: Line number {args.line_number} out of range (1-{len(lines)})", file=sys.stderr)
+                lines = [line.strip() for line in f.readlines() if line.strip()]
+            
+            num_lines = min(args.number, len(lines))
+            if num_lines < 1:
+                print(f"Error: No valid lines found in file", file=sys.stderr)
+                sys.exit(1)
+            
+            request_data_list = []
+            for i in range(num_lines):
+                try:
+                    request_data_list.append(json.loads(lines[i]))
+                except json.JSONDecodeError as e:
+                    print(f"Error parsing JSONL line {i+1}: {e}", file=sys.stderr)
                     sys.exit(1)
-                
-                line = lines[args.line_number - 1].strip()
-                if not line:
-                    print(f"Error: Line {args.line_number} is empty", file=sys.stderr)
-                    sys.exit(1)
-                
-                request_data = json.loads(line)
         except FileNotFoundError:
             print(f"Error: File not found: {args.input}", file=sys.stderr)
             sys.exit(1)
-        except json.JSONDecodeError as e:
-            print(f"Error parsing JSONL line {args.line_number}: {e}", file=sys.stderr)
-            sys.exit(1)
+        
+        # Process each request
+        for idx, request_data in enumerate(request_data_list, 1):
+            if len(request_data_list) > 1:
+                print(f"\n{'='*80}")
+                print(f"Request {idx}/{len(request_data_list)}")
+                print(f"{'='*80}")
+            
+            # Show request info
+            print("Request:")
+            print(json.dumps(request_data, indent=2))
+            print()
+            
+            # Execute request
+            replay_request(
+                request_data, 
+                args.base_url, 
+                show_xh=getattr(args, 'show_xh', False) or getattr(args, 'show_curl', False),
+                use_xh=getattr(args, 'use_xh', False) or getattr(args, 'use_curl', False),
+                xh_only=getattr(args, 'xh_only', False) or getattr(args, 'curl_only', False)
+            )
     else:
         parser.print_help()
         sys.exit(1)
-    
-    if not request_data:
-        print("Error: No request data found", file=sys.stderr)
-        sys.exit(1)
-    
-    # Show request info
-    print("Request:")
-    print(json.dumps(request_data, indent=2))
-    print()
-    
-    # Execute request
-    replay_request(
-        request_data, 
-        args.base_url, 
-        show_xh=getattr(args, 'show_xh', False) or getattr(args, 'show_curl', False),
-        use_xh=getattr(args, 'use_xh', False) or getattr(args, 'use_curl', False),
-        xh_only=getattr(args, 'xh_only', False) or getattr(args, 'curl_only', False)
-    )
 
 
 if __name__ == "__main__":
