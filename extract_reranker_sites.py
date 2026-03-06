@@ -263,8 +263,23 @@ def extract_sites(input_file, show_summary=False, limit=None, filter_api=None, f
                         request_entry["payload"] = entry["payload"]
                     if "headers" in entry:
                         request_entry["headers"] = entry["headers"]
-                    if "path" in entry:
-                        request_entry["path"] = entry["path"]
+                    
+                    # Get path from entry, or construct it from sitekey and api
+                    path = entry.get("path")
+                    if not path and sitekey:
+                        api = entry.get("api") or "recommend_v2"  # Default to recommend_v2
+                        if api == "rerank":
+                            path = f"/v1.0/sites/{sitekey}/rerank"
+                        elif api == "recommend_v2":
+                            path = f"/v2.0/sites/{sitekey}/recommend"
+                        elif api == "recommend":
+                            path = f"/v1.0/sites/{sitekey}/recommend"
+                        else:
+                            path = f"/v1.0/sites/{sitekey}/recommend"
+                    
+                    if path:
+                        request_entry["path"] = path
+                    
                     if "x-request-id" in entry:
                         request_entry["x-request-id"] = entry["x-request-id"]
                     if "full_data" in entry:
