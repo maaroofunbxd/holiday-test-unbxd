@@ -156,7 +156,7 @@ def extract_from_python_log(line: str, include_full_data=False) -> Optional[Dict
     return result
 
 
-def extract_sites(input_file, show_summary=False, limit=None, filter_api=None, filter_platform=None, filter_sitekey=None, extract_requests=False, output_file=None, show_table=False):
+def extract_sites(input_file, show_summary=False, limit=None, filter_api=None, filter_platform=None, filter_sitekey=None, filter_algo=None, extract_requests=False, output_file=None, show_table=False):
     """Extract site information from log file or stdin."""
     sites_data = defaultdict(lambda: {
         "platforms": set(),
@@ -174,6 +174,8 @@ def extract_sites(input_file, show_summary=False, limit=None, filter_api=None, f
         filter_platform = filter_platform.lower()
     if filter_sitekey:
         filter_sitekey = filter_sitekey.lower()
+    if filter_algo:
+        filter_algo = filter_algo.lower()
     
     # For extracting individual requests
     requests_list = []
@@ -219,6 +221,11 @@ def extract_sites(input_file, show_summary=False, limit=None, filter_api=None, f
                 if filter_sitekey and should_include:
                     entry_sitekey = entry.get("sitekey", "").lower()
                     if filter_sitekey not in entry_sitekey:
+                        should_include = False
+                
+                if filter_algo and should_include:
+                    entry_algo = entry.get("algo", "").lower() if entry.get("algo") else ""
+                    if entry_algo != filter_algo:
                         should_include = False
                 
                 if not should_include:
@@ -311,13 +318,13 @@ def extract_sites(input_file, show_summary=False, limit=None, filter_api=None, f
                 print(json.dumps(req))
     elif show_table:
         # Show summary table
-        print_summary(sites_summary, filter_api, filter_platform, filter_sitekey)
+        print_summary(sites_summary, filter_api, filter_platform, filter_sitekey, filter_algo)
     elif show_summary:
         # Show detailed view (legacy, same as default)
-        print_detailed(sites_summary, filter_api, filter_platform, filter_sitekey)
+        print_detailed(sites_summary, filter_api, filter_platform, filter_sitekey, filter_algo)
     else:
         # Default: detailed view
-        print_detailed(sites_summary, filter_api, filter_platform, filter_sitekey)
+        print_detailed(sites_summary, filter_api, filter_platform, filter_sitekey, filter_algo)
     
     if extract_requests:
         return requests_list
@@ -326,7 +333,7 @@ def extract_sites(input_file, show_summary=False, limit=None, filter_api=None, f
 
 
 
-def print_summary(sites_summary, filter_api=None, filter_platform=None, filter_sitekey=None):
+def print_summary(sites_summary, filter_api=None, filter_platform=None, filter_sitekey=None, filter_algo=None):
     """Print a summary table of sites."""
     print("\n" + "=" * 120)
     print("RERANKER SITES SUMMARY")
@@ -336,6 +343,8 @@ def print_summary(sites_summary, filter_api=None, filter_platform=None, filter_s
         print(f"Filter: Platform = {filter_platform}")
     if filter_sitekey:
         print(f"Filter: Sitekey = {filter_sitekey}")
+    if filter_algo:
+        print(f"Filter: Algo = {filter_algo}")
     print("=" * 120)
     print(f"{'Sitekey':<50} {'Platform':<18} {'Algo':<12} {'API':<12} {'Service':<12} {'Count':<8}")
     print("-" * 120)
@@ -354,7 +363,7 @@ def print_summary(sites_summary, filter_api=None, filter_platform=None, filter_s
     print(f"Total requests: {sum(s['count'] for s in sites_summary)}")
 
 
-def print_detailed(sites_summary, filter_api=None, filter_platform=None, filter_sitekey=None):
+def print_detailed(sites_summary, filter_api=None, filter_platform=None, filter_sitekey=None, filter_algo=None):
     """Print detailed information for each site."""
     print("\n" + "=" * 100)
     print("RERANKER SITES DETAILED VIEW")
@@ -364,6 +373,8 @@ def print_detailed(sites_summary, filter_api=None, filter_platform=None, filter_
         print(f"Filter: Platform = {filter_platform}")
     if filter_sitekey:
         print(f"Filter: Sitekey = {filter_sitekey}")
+    if filter_algo:
+        print(f"Filter: Algo = {filter_algo}")
     print("=" * 100)
     
     for i, site in enumerate(sites_summary, 1):
@@ -410,6 +421,9 @@ Examples:
   # Filter by sitekey, API, and platform
   python3 extract_reranker_sites.py -i reranker_logs.txt --sitekey tangs --api rerank --platform netcore
   
+  # Filter by algorithm
+  python3 extract_reranker_sites.py -i reranker_logs.txt --algo bab
+  
   # Extract individual requests (prints JSON, one per line)
   python3 extract_reranker_sites.py -i reranker_logs.txt --extract-requests --api rerank
   
@@ -454,6 +468,10 @@ Examples:
         help="Filter by sitekey (partial match supported, case-insensitive)"
     )
     parser.add_argument(
+        "--algo",
+        help="Filter by algorithm (e.g., vav, bab, search)"
+    )
+    parser.add_argument(
         "--extract-requests",
         action="store_true",
         help="Extract individual requests with full data (payload, headers, etc.). Prints JSON, one request per line"
@@ -477,6 +495,7 @@ Examples:
         filter_api=args.api,
         filter_platform=args.platform,
         filter_sitekey=args.sitekey,
+        filter_algo=args.algo,
         extract_requests=args.extract_requests,
         output_file=args.output,
         show_table=args.table
