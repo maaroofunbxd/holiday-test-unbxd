@@ -47,15 +47,19 @@ fi
 # Function to get algo labels to monitor based on service
 get_algo_labels() {
     local service=$1
+    if [ -n "${ALGO_LABELS:-}" ]; then
+        echo "$ALGO_LABELS"
+        return
+    fi
+    if [ -f "$(dirname "$0")/services.py" ]; then
+        python3 "$(dirname "$0")/services.py" get "$service" algo_labels 2>/dev/null && return
+    fi
     case "$service" in
-        reranker-demo)
+        reranker-demo|reranker)
             echo "ranking,embeddings"
             ;;
-        ner-demo)
+        ner-demo|ner)
             echo "ner"
-            ;;
-        qcs)
-            echo ""
             ;;
         *)
             echo ""

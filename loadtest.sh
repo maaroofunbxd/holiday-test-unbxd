@@ -27,8 +27,14 @@ fi
 
 SERVICE=${1:-qcs-demo}
 REGION=${2:-ap-southeast-1prod}
-NAMESPACE=${3:-ai}
+ARG_NS=${3:-}
 COMMANDS_FILE=${4:-loadtestcluster-commands.sh}
+
+if [ -f "$(dirname "$0")/services.py" ]; then
+  eval "$(python3 "$(dirname "$0")/services.py" export-env "$SERVICE" --region "$REGION" 2>/dev/null)" || true
+  SERVICE="${K8S_SERVICE:-$SERVICE}"
+fi
+NAMESPACE="${ARG_NS:-${NAMESPACE:-ai}}"
 
 if [ "$STATUS" = true ]; then
   # ============================================================================
@@ -73,21 +79,32 @@ echo "  Commands:  $COMMANDS_FILE"
 echo "════════════════════════════════════════════════════════════"
 echo ""
 
-echo "📡 Getting service host from cluster..."
-FULL_OUTPUT=$(./accesscluster.sh $REGION "./get-service-host.sh $SERVICE $NAMESPACE" 2>&1)
-echo "$FULL_OUTPUT"
-echo ""
+if [ -n "${HOST:-}" ] && [[ "$HOST" == http://* || "$HOST" == https://* ]]; then
+  echo "Using HOST override: $HOST"
+  echo ""
+else
+  echo "📡 Getting service host from cluster..."
+  FULL_OUTPUT=$(./accesscluster.sh "$REGION" "./get-service-host.sh $SERVICE $NAMESPACE" 2>&1)
+  echo "$FULL_OUTPUT"
+  echo ""
 
-HOST_VALUE=$(echo "$FULL_OUTPUT" | grep -oE '[a-z0-9-]+\.[a-z0-9-]+\.elb\.amazonaws\.com' | head -1)
+  HOST_VALUE=$(echo "$FULL_OUTPUT" | awk -F= '/^SERVICE_HOST=/{print $2}' | tail -1 | tr -d '\r')
+  if [ -z "$HOST_VALUE" ]; then
+    HOST_VALUE=$(echo "$FULL_OUTPUT" | grep -oE '[a-z0-9-]+\.[a-z0-9-]+\.elb\.amazonaws\.com' | head -1)
+  fi
+  if [ -z "$HOST_VALUE" ]; then
+    HOST_VALUE=$(echo "$FULL_OUTPUT" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | tail -1)
+  fi
 
-if [ -z "$HOST_VALUE" ]; then
-  echo "❌ Error: Could not extract service host"
-  exit 1
+  if [ -z "$HOST_VALUE" ]; then
+    echo "❌ Error: Could not extract service host (need ELB hostname or IP)"
+    exit 1
+  fi
+
+  HOST="http://${HOST_VALUE}"
+  echo "✅ Host: $HOST"
+  echo ""
 fi
-
-HOST="http://${HOST_VALUE}"
-echo "✅ Host: $HOST"
-echo ""
 
 # Verify commands file exists
 if [ ! -f "$COMMANDS_FILE" ]; then
@@ -96,6 +113,7 @@ if [ ! -f "$COMMANDS_FILE" ]; then
 fi
 
 COMMANDS=$(cat "$COMMANDS_FILE")
+COMMANDS="${COMMANDS//\$HOST/$HOST}"
 
 if [ "$BACKGROUND" = true ]; then
   # ============================================================================
@@ -114,8 +132,12 @@ if [ "$BACKGROUND" = true ]; then
 cd ~/mrf/loadtest/holiday-test-unbxd
 git fetch origin >/dev/null 2>&1
 git rebase origin/main >/dev/null 2>&1
-export REGION='$REGION'
+export REGION='${LOG_REGION:-$REGION}'
 export HOST='$HOST'
+export S3_BUCKET='${S3_BUCKET:-}'
+export S3_PREFIX='${S3_PREFIX:-}'
+export PAYLOAD_MODE='${PAYLOAD_MODE:-jsonl}'
+export SERVICE='${LOG_PREFIX:-$SERVICE}'
 screen -dmS $SESSION_NAME bash -c '$COMMANDS > $LOG_FILE 2>&1'
 sleep 3
 echo '✅ Screen session started: $SESSION_NAME'
@@ -145,13 +167,15 @@ else
   echo "💡 Tip: Use --background to run this on the server and close your laptop"
   echo ""
   
-  HOST=$HOST REGION=$REGION ./accessloadtestcluster.sh "@$COMMANDS_FILE"
+  HOST=$HOST REGION="${LOG_REGION:-$REGION}" S3_BUCKET="${S3_BUCKET:-}" \
+    S3_PREFIX="${S3_PREFIX:-}" PAYLOAD_MODE="${PAYLOAD_MODE:-jsonl}" \
+    SERVICE="${LOG_PREFIX:-$SERVICE}" \
+    ./accessloadtestcluster.sh "@$COMMANDS_FILE"
   
   echo ""
   echo "✅ Load test completed!"
   echo ""
   echo "📊 Next Steps:"
-  echo "   ./accesscluster.sh $REGION \"./uploadtos3.sh $SERVICE\""
-  echo "   sh ./process_logs.sh ${SERVICE}-${REGION}-logs ${SERVICE} ${SERVICE} ${REGION}"
+  echo "   ./holiday.sh report ${LOG_PREFIX:-$SERVICE} $REGION --s3 --open"
   echo ""
 fi

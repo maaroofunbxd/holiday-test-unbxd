@@ -1,7 +1,9 @@
 #!/bin/bash
 # ============================================================================
 # RUN TEST - Run both monitoring and load test (interactive or background)
-# ============================================================================
+# For the full holiday loop (pre-test + optional payload prepare + k6 + dashboard):
+#   ./holiday.sh run <service> <region> --background --prepare
+#
 # Usage:
 #   ./run-test.sh [service] [region] [namespace] [duration]
 #   ./run-test.sh --background [service] [region] [namespace] [duration]
@@ -21,9 +23,16 @@ fi
 
 SERVICE=${1:-qcs-demo}
 REGION=${2:-ap-southeast-1prod}
-NAMESPACE=${3:-ai}
+ARG_NS=${3:-}
 DURATION=${4:-600}
 COMMANDS_FILE=${5:-loadtestcluster-commands.sh}
+
+if [ -f "$(dirname "$0")/services.py" ]; then
+  eval "$(python3 "$(dirname "$0")/services.py" export-env "$SERVICE" --region "$REGION" 2>/dev/null)" || true
+fi
+NAMESPACE="${ARG_NS:-${NAMESPACE:-ai}}"
+MONITOR_SERVICE="${APP_LABEL:-$SERVICE}"
+LOAD_SERVICE="${K8S_SERVICE:-$SERVICE}"
 
 echo ""
 echo "🎯 FULL TEST RUNNER"
@@ -47,11 +56,11 @@ if [ "$BACKGROUND" = true ]; then
   # ============================================================================
   
   echo "Step 1/2: Starting monitoring..."
-  ./monitor.sh --background "$SERVICE" "$REGION" "$NAMESPACE" "$DURATION"
+  ./monitor.sh --background "$MONITOR_SERVICE" "$REGION" "$NAMESPACE" "$DURATION"
   
   echo ""
   echo "Step 2/2: Starting load test..."
-  ./loadtest.sh --background "$SERVICE" "$REGION" "$NAMESPACE" "$COMMANDS_FILE"
+  ./loadtest.sh --background "$LOAD_SERVICE" "$REGION" "$NAMESPACE" "$COMMANDS_FILE"
   
   echo ""
   echo "════════════════════════════════════════════════════════════"
@@ -65,8 +74,7 @@ if [ "$BACKGROUND" = true ]; then
   echo "   ./loadtest.sh --status"
   echo ""
   echo "📥 After completion:"
-  echo "   ./accesscluster.sh $REGION \"./uploadtos3.sh $SERVICE\""
-  echo "   sh ./process_logs.sh ${SERVICE}-${REGION}-logs ${SERVICE} ${SERVICE} ${REGION}"
+  echo "   ./holiday.sh report ${SERVICE_ID:-$SERVICE} $REGION --s3 --open"
   echo ""
 
 else
@@ -77,13 +85,16 @@ else
   echo "💡 INTERACTIVE MODE requires 2 terminals:"
   echo ""
   echo "Terminal 1 (Monitoring):"
-  echo "  ./monitor.sh $SERVICE $REGION $NAMESPACE $DURATION"
+  echo "  ./monitor.sh $MONITOR_SERVICE $REGION $NAMESPACE $DURATION"
   echo ""
   echo "Terminal 2 (Load Test):"
-  echo "  ./loadtest.sh $SERVICE $REGION $NAMESPACE $COMMANDS_FILE"
+  echo "  ./loadtest.sh $LOAD_SERVICE $REGION $NAMESPACE $COMMANDS_FILE"
   echo ""
   echo "OR run both in background with:"
   echo "  ./run-test.sh --background $SERVICE $REGION $NAMESPACE $DURATION"
+  echo ""
+  echo "OR the full holiday loop:"
+  echo "  ./holiday.sh run $SERVICE $REGION --background --prepare"
   echo ""
   echo "Continue with monitoring only? (y/n)"
   read -r response
@@ -91,7 +102,7 @@ else
   if [[ "$response" =~ ^[Yy]$ ]]; then
     echo ""
     echo "Starting monitoring (you'll need to run loadtest separately)..."
-    ./monitor.sh "$SERVICE" "$REGION" "$NAMESPACE" "$DURATION"
+    ./monitor.sh "$MONITOR_SERVICE" "$REGION" "$NAMESPACE" "$DURATION"
   else
     echo "Cancelled. Run commands separately or use --background flag."
   fi

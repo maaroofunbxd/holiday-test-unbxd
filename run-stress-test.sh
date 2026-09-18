@@ -42,10 +42,17 @@ HOLD_DURATION=$4
 HOST=$5
 SERVICE=${6:-${SERVICE:-reranker}}
 K6_SCRIPT=${7:-${K6_SCRIPT:-reranker-stress-test.js}}
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REQUESTED_REGION="${REGION:-}"
+if [ -f "$SCRIPT_DIR/services.py" ]; then
+    eval "$(python3 "$SCRIPT_DIR/services.py" export-env "$SERVICE" --region "$REQUESTED_REGION" 2>/dev/null)" || true
+    K6_SCRIPT=${7:-${K6_SCRIPT:-reranker-stress-test.js}}
+    SERVICE="${LOG_PREFIX:-$SERVICE}"
+fi
 
 # Region and file discovery
 WORK_DIR=$(pwd)
-REGION=${REGION:-ap-southeast-1}
+REGION="${LOG_REGION:-${REQUESTED_REGION:-ap-southeast-1}}"
 
 # Find all JSONL files - can be overridden via INPUT_FILES env var
 if [ -z "$INPUT_FILES" ]; then
@@ -153,12 +160,21 @@ if [ -f "s3_upload.sh" ]; then
     echo "📤 Output files added to S3 upload queue"
     echo ""
     echo "📤 Full S3 Paths:"
-    echo "   s3://unbxd-des/rerankerloadtest/${TIME_IST}stress-test-raw.json"
-    echo "   s3://unbxd-des/rerankerloadtest/${TIME_IST}stress-test-summary.json"
+    echo "   ${S3_BUCKET}${TIME_IST}stress-test-raw.json"
+    echo "   ${S3_BUCKET}${TIME_IST}stress-test-summary.json"
     echo ""
     
     source s3_upload.sh
     run_s3_upload "$(pwd)/.s3_upload_queue"
+fi
+
+if command -v python3 >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/dashboard.py" ]; then
+    REPORT_DIR="$WORK_DIR/reports/${SERVICE}-${REGION}-${TIME_IST}"
+    mkdir -p "$REPORT_DIR"
+    cp -f "${TIME_IST}stress-test-raw.json" "${TIME_IST}stress-test-summary.json" "$REPORT_DIR" 2>/dev/null || true
+    python3 "$SCRIPT_DIR/dashboard.py" --dir "$REPORT_DIR" --service "$SERVICE" --region "$REGION" \
+        --datadog "${DATADOG_DASHBOARD:-}" || true
+    echo "📊 Dashboard: $REPORT_DIR/index.html"
 fi
 
 # ============================================================================
@@ -174,6 +190,7 @@ echo "3. Look for the RPS where both metrics start degrading"
 echo "4. That's your maximum sustainable RPS!"
 echo ""
 echo "To analyze results:"
-echo "  python plot_k6_metrics.py ${TIME_IST}stress-test-raw.json"
+echo "  python3 dashboard.py --dir . --service $SERVICE --region $REGION"
+echo "  python3 plot_k6_metrics.py ${TIME_IST}stress-test-raw.json"
 echo ""
 

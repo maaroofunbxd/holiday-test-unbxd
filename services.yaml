@@ -1,0 +1,160 @@
+# Operational catalog for holiday load tests.
+# Add a service here to run it with: ./holiday.sh run <id> <region>
+#
+# k8s_service / app_label  → kubectl Service + pod selector (usually *-demo)
+# log_prefix               → ${log_prefix}-${log_region}-logs/ and S3 log prefixes
+# payload_mode             → jsonl (universal k6) | fixture (legacy script)
+
+defaults:
+  s3_bucket: unbxd-des
+  k6_load_script: reranker-load-test.js
+  k6_stress_script: reranker-stress-test.js
+  rps: 50
+  duration: 5m
+  stress_start_rps: 0
+  stress_max_rps: 60
+  stress_ramp: 5m
+  stress_hold: 2m
+  demo_replicas: 1
+  log_regions:
+    ap-southeast-1: ap-southeast-1
+    ap-southeast-1prod: ap-southeast-1
+    use-1d: us-east-1
+    use-1dprod: us-east-1
+    gcp-us: gcp-us
+    gcp-usprod: gcp-us
+    eu-west-2: eu-west-2
+
+services:
+  reranker:
+    aliases: [reranker-demo]
+    display_name: Reranker
+    k8s_service: reranker-demo
+    prod_deployment: reranker
+    demo_deployment: reranker-demo
+    namespace: search
+    containers: [goreranker, pyreranker]
+    app_label: reranker-demo
+    algo_labels: [ranking, embeddings]
+    extract_script: extract_requests.py
+    log_prefix: reranker
+    pre_test_sync: true
+    extra_pre_test: pre-test-reranker.sh
+    s3_prefix: rerankerloadtest
+    payload_mode: jsonl
+    datadog_dashboard: https://app.datadoghq.com/dashboard/dbd-x57-fig/reranker
+
+  qcs:
+    aliases: [qcs-demo]
+    display_name: QCS
+    k8s_service: qcs-demo
+    prod_deployment: qcs
+    demo_deployment: qcs-demo
+    namespace: ai
+    containers: [qcs]
+    app_label: qcs-demo
+    algo_labels: []
+    extract_script: extract_qcs_requests.py
+    log_prefix: qcs
+    pre_test_sync: true
+    extra_pre_test: ""
+    s3_prefix: qcsloadtest
+    payload_mode: jsonl
+    datadog_dashboard: ""
+
+  ner:
+    aliases: [ner-demo]
+    display_name: NER
+    k8s_service: ner-demo
+    prod_deployment: ner
+    demo_deployment: ner-demo
+    namespace: search
+    containers: [ner]
+    app_label: ner-demo
+    algo_labels: [ner]
+    extract_script: extract_ner_requests.py
+    log_prefix: ner
+    pre_test_sync: true
+    extra_pre_test: ""
+    s3_prefix: nerloadtest
+    payload_mode: jsonl
+    datadog_dashboard: ""
+
+  hodor:
+    aliases: [hodor-demo]
+    display_name: Hodor
+    k8s_service: hodor
+    prod_deployment: hodor
+    demo_deployment: hodor
+    namespace: search
+    containers: [hodor]
+    app_label: hodor
+    algo_labels: []
+    extract_script: ""
+    log_prefix: hodor
+    pre_test_sync: false
+    extra_pre_test: ""
+    s3_prefix: hodorloadtest
+    payload_mode: fixture
+    k6_load_script: hodor-load-test.js
+    fixture: express_queries.json
+    datadog_dashboard: ""
+
+  olympus:
+    aliases: []
+    display_name: Olympus
+    k8s_service: olympus
+    prod_deployment: olympus
+    demo_deployment: olympus
+    namespace: search
+    containers: [olympus]
+    app_label: olympus
+    algo_labels: []
+    extract_script: ""
+    log_prefix: olympus
+    pre_test_sync: false
+    extra_pre_test: ""
+    s3_prefix: olympusloadtest
+    payload_mode: fixture
+    k6_load_script: olympus-load-test.js
+    fixture: olympus_data.json
+    datadog_dashboard: ""
+
+  shop:
+    aliases: [hadron, shop-load]
+    display_name: Shop / Hadron
+    k8s_service: hadron
+    prod_deployment: hadron
+    demo_deployment: hadron
+    namespace: search
+    containers: [hadron]
+    app_label: hadron
+    algo_labels: []
+    extract_script: ""
+    log_prefix: shop
+    pre_test_sync: false
+    extra_pre_test: ""
+    s3_prefix: shoploadtest
+    payload_mode: fixture
+    k6_load_script: shop-load-test.js
+    fixture: ""
+    datadog_dashboard: ""
+
+  autosuggest:
+    aliases: [as]
+    display_name: Autosuggest
+    k8s_service: autosuggest
+    prod_deployment: autosuggest
+    demo_deployment: autosuggest-demo
+    namespace: search
+    containers: [autosuggest]
+    app_label: autosuggest
+    algo_labels: []
+    extract_script: ""
+    log_prefix: autosuggest
+    pre_test_sync: false
+    extra_pre_test: ""
+    s3_prefix: autosuggestloadtest
+    payload_mode: script
+    runner: autosuggest_test.py
+    datadog_dashboard: ""

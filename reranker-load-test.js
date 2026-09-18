@@ -91,13 +91,16 @@ export default function () {
     headers: { 'Content-Type': 'application/json' },
   };
 
-  // Execute request based on method
   if (requestConfig.method === 'GET') {
     http.get(requestConfig.url, params);
   } else if (requestConfig.method === 'POST') {
     http.post(requestConfig.url, requestConfig.body, params);
   } else if (requestConfig.method === 'PUT') {
     http.put(requestConfig.url, requestConfig.body, params);
+  } else if (requestConfig.method === 'PATCH') {
+    http.patch(requestConfig.url, requestConfig.body, params);
+  } else if (requestConfig.method === 'DELETE') {
+    http.del(requestConfig.url, requestConfig.body, params);
   } else {
     console.warn(`⚠️  Unsupported method: ${requestConfig.method}`);
     return;

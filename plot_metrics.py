@@ -1,10 +1,25 @@
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 
-# Read the CSV file
-df = pd.read_csv('20251111-1603reranker-demo_detailed_values.csv')
+parser = argparse.ArgumentParser(description="Plot pod CPU/memory CSV from monitor-pod-resources.py")
+parser.add_argument("input", nargs="?", default=None, help="monitor CSV file")
+parser.add_argument("-o", "--output", default="cpu_memory_over_time.png")
+parser.add_argument("--no-show", action="store_true")
+args = parser.parse_args()
+
+input_file = args.input
+if not input_file:
+    from pathlib import Path
+    candidates = sorted(Path(".").glob("*_detailed_values.csv")) + sorted(Path(".").glob("*.csv"))
+    if not candidates:
+        raise SystemExit("Usage: python3 plot_metrics.py <monitor.csv>")
+    input_file = str(candidates[-1])
+    print(f"Using latest file: {input_file}")
+
+df = pd.read_csv(input_file)
 
 # Convert Timestamp to datetime
 df['Timestamp'] = pd.to_datetime(df['Timestamp'])
@@ -47,11 +62,11 @@ plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right')
 plt.tight_layout()
 
 # Save the plot
-plt.savefig('cpu_memory_over_time.png', dpi=300, bbox_inches='tight')
-print("Graph saved as 'cpu_memory_over_time.png'")
+plt.savefig(args.output, dpi=300, bbox_inches='tight')
+print(f"Graph saved as '{args.output}'")
 
-# Display the plot
-plt.show()
+if not args.no_show:
+    plt.show()
 
 # Print summary statistics
 print("\n=== Summary Statistics ===")

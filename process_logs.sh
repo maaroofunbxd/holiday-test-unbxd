@@ -12,21 +12,22 @@ prefix="${2:-reranker}"
 service="${3:-reranker}"
 region="${4:-ap-southeast-1}"
 
-# Determine which extraction script to use based on service
-case "$service" in
-  reranker)
-    extract_script="extract_requests.py"
-    ;;
-  ner)
-    extract_script="extract_ner_requests.py"
-    ;;
-  qcs)
-    extract_script="extract_qcs_requests.py"
-    ;;
-  *)
-    extract_script="extract_requests.py"
-    ;;
-esac
+extract_script=""
+if python3 services.py resolve "$service" >/dev/null 2>&1; then
+  extract_script=$(python3 services.py get "$service" extract_script 2>/dev/null || true)
+elif [ -z "$extract_script" ]; then
+  case "$service" in
+    reranker) extract_script="extract_requests.py" ;;
+    ner)      extract_script="extract_ner_requests.py" ;;
+    qcs)      extract_script="extract_qcs_requests.py" ;;
+    *)        extract_script="extract_requests.py" ;;
+  esac
+fi
+
+if [ -z "$extract_script" ] || [ "$extract_script" = "None" ]; then
+  echo "No extract_script for $service — skipping JSONL extraction"
+  exit 0
+fi
 
 find "$directory" -name "${prefix}-*.log" -type f | while read -r file; do
   basename_file=$(basename "$file" .log)
