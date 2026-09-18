@@ -4,17 +4,32 @@ Common pre-test setup script for Kubernetes deployments.
 Copies configuration from prod deployment to demo deployment.
 """
 
-import subprocess
+import argparse
+import copy
 import json
-import sys
 import os
+import subprocess
+import sys
 
 
-# Configuration
-deployment_name = "qcs"
-container_name = "qcs"
-namespace = "ai"
-demo_deployment = f"{deployment_name}-demo"
+def parse_args():
+    parser = argparse.ArgumentParser(description="Sync prod deployment onto demo for holiday tests")
+    parser.add_argument("--service", help="Catalog service id (qcs, ner, reranker, ...)")
+    parser.add_argument("--deployment", help="Prod deployment name")
+    parser.add_argument("--demo-deployment", help="Demo deployment name")
+    parser.add_argument("--container", help="Container to copy (default: all catalog containers)")
+    parser.add_argument("--namespace")
+    parser.add_argument("--replicas", type=int, default=1)
+    return parser.parse_args()
+
+
+def load_from_catalog(service_id):
+    try:
+        from services import get_service
+        return get_service(service_id)
+    except Exception as exc:
+        print(f"WARNING: catalog lookup failed for {service_id}: {exc}")
+        return {}
 
 
 def run_command(cmd, capture_output=True, check=True, input_data=None):
@@ -94,35 +109,87 @@ def clean_probe(probe):
 
 
 def main():
+    args = parse_args()
+    catalog = load_from_catalog(args.service) if args.service else {}
+
+    deployment_name = args.deployment or catalog.get("prod_deployment") or "qcs"
+    demo_deployment = args.demo_deployment or catalog.get("demo_deployment") or f"{deployment_name}-demo"
+    namespace = args.namespace or catalog.get("namespace") or "ai"
+    replica_count = args.replicas if args.replicas is not None else int(catalog.get("demo_replicas") or 1)
+
+    if args.container:
+        containers = [args.container]
+    elif catalog.get("containers"):
+        containers = list(catalog["containers"])
+    else:
+        containers = [deployment_name]
+
     print("=" * 80)
     print("Pre-Test Setup: Syncing prod to demo deployment")
+    print(f"  prod={deployment_name} demo={demo_deployment} ns={namespace} containers={containers}")
     print("=" * 80)
-    
-    # Compare demo and prod deployments (if yaml files exist)
+
     try:
-        run_command(f"kubectl get deploy {deploymentname}-demo -n{namespace} -oyaml > demo.yaml")
-        run_command(f"kubectl get deploy {deploymentname} -n{namespace} -oyaml > prod.yaml")
+        run_command(f"kubectl get deploy {demo_deployment} -n{namespace} -oyaml > demo.yaml")
+        run_command(f"kubectl get deploy {deployment_name} -n{namespace} -oyaml > prod.yaml")
         run_command("diff demo.yaml prod.yaml", check=False)
-    except:
+    except Exception:
         pass
-    
-    # Get source image from prod deployment
+
+    for container_name in containers:
+        sync_container(deployment_name, demo_deployment, namespace, container_name)
+
+    print("\n--- Step 4: Scaling Replicas ---")
+    replicas_jsonpath = "{.spec.replicas}"
+    cmd = f"kubectl get deploy {deployment_name} -n {namespace} -o jsonpath='{replicas_jsonpath}'"
+    replicas = run_command(cmd)
+    print(f"Source replicas: {replicas}; demo target: {replica_count}")
+
+    cmd = f"kubectl scale deploy {demo_deployment} -n {namespace} --replicas={replica_count}"
+    run_command(cmd)
+
+    cmd = f'kubectl annotate deploy {demo_deployment} -n {namespace} kubernetes.io/change-cause="holiday pre-test sync from {deployment_name}" --overwrite'
+    run_command(cmd)
+
+    print("\n--- Step 5: Rolling Restart ---")
+    cmd = f"kubectl rollout restart deployment {demo_deployment} -n {namespace}"
+    run_command(cmd)
+
+    print("\nWaiting for rollout to complete...")
+    cmd = f"kubectl rollout status deployment {demo_deployment} -n {namespace}"
+    run_command(cmd)
+
+    print("\nRollout history:")
+    cmd = f"kubectl rollout history deployment {demo_deployment} -n {namespace}"
+    run_command(cmd, capture_output=False)
+
+    print("\n--- Final Comparison ---")
+    try:
+        run_command("diff demo.yaml prod.yaml", check=False)
+    except Exception:
+        pass
+
+    print("\n" + "=" * 80)
+    print("Pre-Test Setup Complete!")
+    print("=" * 80)
+
+
+def sync_container(deployment_name, demo_deployment, namespace, container_name):
+    print(f"\n=== Container: {container_name} ===")
     print("\n--- Step 1: Syncing Image ---")
     source_image = get_jsonpath(deployment_name, namespace, container_name, "image")
     print(f"SOURCE_IMAGE: {source_image}")
-    
+
     current_image = get_jsonpath(demo_deployment, namespace, container_name, "image")
     print(f"CURRENT_IMAGE: {current_image}")
-    
-    # Set image on demo deployment
+
     cmd = f"kubectl set image deployment/{demo_deployment} -n {namespace} {container_name}={source_image}"
     run_command(cmd)
-    
-    # Copy imagePullPolicy
+
     print("\n--- Step 2: Syncing ImagePullPolicy ---")
     policy = get_jsonpath(deployment_name, namespace, container_name, "imagePullPolicy")
     print(f"ImagePullPolicy: {policy}")
-    
+
     patch = {
         "spec": {
             "template": {
@@ -136,35 +203,26 @@ def main():
         }
     }
     kubectl_patch(demo_deployment, namespace, patch)
-    
-    # Verify imagePullPolicy
+
     new_policy = get_jsonpath(demo_deployment, namespace, container_name, "imagePullPolicy")
     print(f"Updated ImagePullPolicy: {new_policy}")
-    
-    # Extract and copy container config (resources, probes)
+
     print("\n--- Step 3: Syncing Resources and Probes ---")
-    
-    # Get full container config from source
     cmd = f"kubectl get deploy {deployment_name} -n {namespace} -o json"
     source_json = run_command(cmd)
     source_data = json.loads(source_json)
-    
-    # Find the container config
+
     container_config = None
     for container in source_data['spec']['template']['spec']['containers']:
         if container['name'] == container_name:
-            # Extract only the fields we want to copy
             liveness = container.get('livenessProbe', {})
             readiness = container.get('readinessProbe', {})
-            
-            # Clean probes to ensure only one handler type
             if liveness:
                 print("Cleaning livenessProbe...")
                 liveness = clean_probe(liveness)
             if readiness:
                 print("Cleaning readinessProbe...")
                 readiness = clean_probe(readiness)
-            
             container_config = {
                 'name': container['name'],
                 'resources': container.get('resources', {}),
@@ -172,17 +230,16 @@ def main():
                 'readinessProbe': readiness
             }
             break
-    
+
     if not container_config:
         print(f"ERROR: Container {container_name} not found in source deployment")
         sys.exit(1)
-    
-    # Print current target values
+
     print("\n---- Current target values ----")
     cmd = f"kubectl get deploy {demo_deployment} -n {namespace} -o json"
     target_json = run_command(cmd)
     target_data = json.loads(target_json)
-    
+
     for container in target_data['spec']['template']['spec']['containers']:
         if container['name'] == container_name:
             print(json.dumps({
@@ -192,8 +249,7 @@ def main():
                 'readinessProbe': container.get('readinessProbe', {})
             }, indent=2))
             break
-    
-    # Patch the target deployment
+
     patch = {
         "spec": {
             "template": {
@@ -204,51 +260,11 @@ def main():
         }
     }
     kubectl_patch(demo_deployment, namespace, patch)
-    
-    # Verify updated values
+
     print("\n---- Updated target values ----")
     for probe in ['livenessProbe', 'readinessProbe', 'resources']:
         value = get_jsonpath(demo_deployment, namespace, container_name, probe)
         print(f"{probe}: {value}")
-    
-    # Scale replicas
-    print("\n--- Step 4: Scaling Replicas ---")
-    replicas_jsonpath = "{.spec.replicas}"
-    cmd = f"kubectl get deploy {deployment_name} -n {namespace} -o jsonpath='{replicas_jsonpath}'"
-    replicas = run_command(cmd)
-    print(f"Source replicas: {replicas}")
-    
-    # Scale demo to 1 replica (can be changed as needed)
-    cmd = f"kubectl scale deploy {demo_deployment} -n {namespace} --replicas=1"
-    run_command(cmd)
-    
-    # Annotate the deployment
-    cmd = f'kubectl annotate deploy {demo_deployment} -n {namespace} kubernetes.io/change-cause="increased replicas to {replicas}" --overwrite'
-    run_command(cmd)
-    
-    # Restart and monitor rollout
-    print("\n--- Step 5: Rolling Restart ---")
-    cmd = f"kubectl rollout restart deployment {demo_deployment} -n {namespace}"
-    run_command(cmd)
-    
-    print("\nWaiting for rollout to complete...")
-    cmd = f"kubectl rollout status deployment {demo_deployment} -n {namespace}"
-    run_command(cmd)
-    
-    print("\nRollout history:")
-    cmd = f"kubectl rollout history deployment {demo_deployment} -n {namespace}"
-    run_command(cmd, capture_output=False)
-    
-    # Final comparison
-    print("\n--- Final Comparison ---")
-    try:
-        run_command("diff demo.yaml prod.yaml", check=False)
-    except:
-        pass
-    
-    print("\n" + "=" * 80)
-    print("Pre-Test Setup Complete!")
-    print("=" * 80)
 
 
 if __name__ == "__main__":

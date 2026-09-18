@@ -96,14 +96,16 @@ export default function () {
     timeout: '30s',  // Prevent hanging requests
   };
 
-  // Execute request based on method
-  let response;
   if (requestConfig.method === 'GET') {
     response = http.get(requestConfig.url, params);
   } else if (requestConfig.method === 'POST') {
     response = http.post(requestConfig.url, requestConfig.body, params);
   } else if (requestConfig.method === 'PUT') {
     response = http.put(requestConfig.url, requestConfig.body, params);
+  } else if (requestConfig.method === 'PATCH') {
+    response = http.patch(requestConfig.url, requestConfig.body, params);
+  } else if (requestConfig.method === 'DELETE') {
+    response = http.del(requestConfig.url, requestConfig.body, params);
   } else {
     console.warn(`⚠️  Unsupported method: ${requestConfig.method}`);
     return;

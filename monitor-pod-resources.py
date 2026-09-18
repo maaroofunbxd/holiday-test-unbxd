@@ -595,7 +595,9 @@ def save_stats_to_csv(metrics, output_file):
     
     # Write output file paths to s3_upload_queue for bash script to read
     queue_file = '.s3_upload_queue'
-    s3_bucket = "s3://unbxd-des/rerankerloadtest/"  # Default S3 bucket
+    s3_bucket = os.environ.get("S3_BUCKET", "s3://unbxd-des/rerankerloadtest/")
+    if not s3_bucket.endswith("/"):
+        s3_bucket += "/"
     
     try:
         with open(queue_file, 'a') as f:

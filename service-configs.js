@@ -13,20 +13,22 @@ export function getUrlBuilder(serviceType) {
       return null;
     }
     
-    // Handle GET requests with query_string
-    if (payload.type === 'get' && payload.query_string) {
-      let url = `${host}${payload.path}`;
+    const method = (payload.type || payload.method || '').toLowerCase();
+    let url = `${host}${payload.path}`;
+    if (payload.query_string) {
       const queryString = payload.query_string;
       url += queryString.startsWith('?') ? queryString : '?' + queryString;
+    }
+
+    if (method === 'get') {
       return { url, method: 'GET', body: null };
     }
-    
-    // Handle POST requests with payload
-    if (payload.type === 'post' && payload.payload) {
-      const url = `${host}${payload.path}`;
-      return { url, method: 'POST', body: JSON.stringify(payload.payload) };
+
+    if (method === 'post' || method === 'put' || method === 'patch' || method === 'delete') {
+      const body = payload.payload ? JSON.stringify(payload.payload) : null;
+      return { url, method: method.toUpperCase(), body };
     }
-    
+
     return null;
   };
 }

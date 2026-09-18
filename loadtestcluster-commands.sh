@@ -1,4 +1,3 @@
-./runloadtest.sh $HOST
-bash
-#sh ./downloadfroms3.sh qcs ap-southeast-1
-#sh ./process_logs.sh qcs-ap-southeast-1prod-logs qcs qcs ap-southeast-1
+export REGION="${REGION:-ap-southeast-1}"
+export SERVICE="${SERVICE:-qcs}"
+./k6run.sh ${RPS:-50} ${DURATION:-5m} $HOST ${SERVICE} ${K6_SCRIPT:-reranker-load-test.js}

@@ -22,8 +22,14 @@ cleanup() {
 # S3 Upload Module
 # ========================================
 
-# Configuration
-S3_BUCKET="s3://unbxd-des/rerankerloadtest/"
+# Configuration — override with S3_BUCKET or S3_PREFIX from the service catalog
+if [ -z "${S3_BUCKET:-}" ]; then
+    S3_BUCKET="s3://unbxd-des/${S3_PREFIX:-rerankerloadtest}/"
+fi
+case "$S3_BUCKET" in
+    */) ;;
+    *) S3_BUCKET="${S3_BUCKET}/" ;;
+esac
 SKIP_S3_UPLOAD="${SKIP_S3_UPLOAD:-false}"
 AWS_OPTS="--only-show-errors"
 

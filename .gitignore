@@ -1,5 +1,14 @@
 # S3 upload queue files
 .s3_upload_queue
+__pycache__/
+*.pyc
+
+# Generated dashboards and k6/monitor outputs
+reports/
+*raw-data.json
+*summary.json
+*stress-test-raw.json
+*stress-test-summary.json
 
 # Test output files  
 *test.csv
@@ -11,8 +20,22 @@
 *ranking-embedding.csv
 *ranking-embedding_summary.txt
 *ranking-embedding_events.csv
-*raw-data.json
-*summary.json
 *reranker-load-test.txt
 *reranker-load-test_summary.txt
+
+# Large request fixtures — keep these on S3, not in git
+apacCFSTas.csv
+camperAsWingman.csv
+express_queries.json
+frontAsCf.csv
+ukAs.csv
+ukAs2.csv
+us_angara_hodor.json
+us_angara_search_hodor.json
+us_angara_search_hodor_2.json
+us_angara_search.csv
+us_suncast_hodor.json
+wowcherAsWingman.csv
+olympus_data.json
+
 

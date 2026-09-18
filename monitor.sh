@@ -27,8 +27,14 @@ fi
 
 SERVICE=${1:-qcs-demo}
 REGION=${2:-ap-southeast-1prod}
-NAMESPACE=${3:-ai}
+ARG_NS=${3:-}
 DURATION=${4:-600}
+
+if [ -f "$(dirname "$0")/services.py" ]; then
+  eval "$(python3 "$(dirname "$0")/services.py" export-env "$SERVICE" --region "$REGION" 2>/dev/null)" || true
+  SERVICE="${APP_LABEL:-$SERVICE}"
+fi
+NAMESPACE="${ARG_NS:-${NAMESPACE:-ai}}"
 
 if [ "$STATUS" = true ]; then
   # ============================================================================
@@ -68,7 +74,7 @@ elif [ "$BACKGROUND" = true ]; then
   echo "════════════════════════════════════════════════════════════"
   echo ""
   
-  REMOTE_CMD="cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && pip3 install --quiet pandas tabulate && nohup ./clustermonitor.sh $SERVICE $DURATION $NAMESPACE > $LOG_FILE 2>&1 & PID=\\\$! && echo \"Process started with PID: \\\$PID\" && echo \"Log file: $LOG_FILE\" && echo \"To check: ps -p \\\$PID or tail -f $LOG_FILE\""
+  REMOTE_CMD="cd ~/mrf/holiday-test-unbxd && git fetch origin >/dev/null 2>&1 && git rebase origin/main >/dev/null 2>&1 && pip3 install --quiet pandas tabulate pyyaml && export S3_BUCKET='${S3_BUCKET:-}' S3_PREFIX='${S3_PREFIX:-}' ALGO_LABELS='${ALGO_LABELS:-}' && nohup ./clustermonitor.sh $SERVICE $DURATION $NAMESPACE > $LOG_FILE 2>&1 & PID=\\\$! && echo \"Process started with PID: \\\$PID\" && echo \"Log file: $LOG_FILE\" && echo \"To check: ps -p \\\$PID or tail -f $LOG_FILE\""
   
   ./accesscluster.sh "$REGION" "$REMOTE_CMD"
   
@@ -99,7 +105,10 @@ else
   # Create temp commands file
   TEMP_FILE=$(mktemp)
   cat > "$TEMP_FILE" << EOF
-pip3 install pandas tabulate
+pip3 install pandas tabulate pyyaml
+export S3_BUCKET='${S3_BUCKET:-}'
+export S3_PREFIX='${S3_PREFIX:-}'
+export ALGO_LABELS='${ALGO_LABELS:-}'
 ./clustermonitor.sh $SERVICE $DURATION $NAMESPACE
 EOF
   

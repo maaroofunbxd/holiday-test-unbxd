@@ -1,3 +1,4 @@
+import argparse
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,13 +6,26 @@ import matplotlib.dates as mdates
 from datetime import datetime
 from collections import defaultdict
 
-# Read the k6 raw data JSON file (newline-delimited JSON)
+parser = argparse.ArgumentParser(description="Plot k6 NDJSON latency and status codes")
+parser.add_argument("input", nargs="?", default=None, help="k6 raw NDJSON file")
+parser.add_argument("-o", "--output", default="k6_load_test_analysis.png")
+parser.add_argument("--no-show", action="store_true", help="Do not open a window")
+args = parser.parse_args()
+
+input_file = args.input
+if not input_file:
+    from pathlib import Path
+    candidates = sorted(Path(".").glob("*raw-data.json")) + sorted(Path(".").glob("*raw.json"))
+    if not candidates:
+        raise SystemExit("Usage: python3 plot_k6_metrics.py <k6-raw.json>")
+    input_file = str(candidates[-1])
+    print(f"Using latest file: {input_file}")
+
 data_points = []
 
 print("Reading k6 data...")
-with open('20251111-1603raw-data.json', 'r') as f:
+with open(input_file, 'r') as f:
     for line in f:
-        print("line: ")
         try:
             data_points.append(json.loads(line))
         except json.JSONDecodeError:
@@ -158,11 +172,11 @@ ax4.set_title('Overall HTTP Status Code Distribution', fontsize=14, fontweight='
 plt.tight_layout()
 
 # Save the plot
-plt.savefig('k6_load_test_analysis.png', dpi=300, bbox_inches='tight')
-print("\nGraph saved as 'k6_load_test_analysis.png'")
+plt.savefig(args.output, dpi=300, bbox_inches='tight')
+print(f"\nGraph saved as '{args.output}'")
 
-# Display the plot
-plt.show()
+if not args.no_show:
+    plt.show()
 
 # Print summary statistics
 print("\n" + "="*60)
